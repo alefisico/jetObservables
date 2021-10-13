@@ -31,7 +31,7 @@ def runPurity( name, bkgFiles, variables, sel ):
     for ivar in variables:
         if not ivar.startswith( name ): continue
         ### Getting input histos
-        signalHistos = loadHistograms( bkgFiles, ivar, sel, sysUnc=[], lumi=1, year=args.year, process='MC', variables=variables )
+        signalHistos = loadHistograms( bkgFiles, ivar, sel, sysUnc=[], lumi=1, year=args.year, process='MC', variables=variables, addGenInfo=True )
         outputDir=args.outputFolder+'Plots/'+args.selection.split('_')[1]+'/Purity/'+args.year+'/'+ivar+'/'
         if not os.path.exists(outputDir): os.makedirs(outputDir)
 
@@ -256,7 +256,8 @@ if __name__ == '__main__':
     #if args.selection.startswith('_dijet'): variables = { k:v for (k,v) in variables.items() if k.startswith(('Jet1', 'Jet2')) }
     #else: variables = { k:v for (k,v) in variables.items() if k.startswith('Jet_') }
 
-    plotList = [ 'Jet1', 'Jet2', 'sdJet1', 'sdJet2' ] if args.selection.startswith('_dijet') else [ 'Jet' ]
+    plotList = [ 'Jet1', 'Jet2' ] if args.selection.startswith('_dijet') else [ 'Jet' ]
+    #plotList = [ 'Jet1', 'Jet2', 'sdJet1', 'sdJet2' ] if args.selection.startswith('_dijet') else [ 'Jet' ]
 
     for i in plotList:
         runPurity( i, bkgFiles, variables, args.selection )

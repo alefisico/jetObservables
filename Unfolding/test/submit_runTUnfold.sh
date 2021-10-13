@@ -6,13 +6,25 @@ source /cvmfs/cms.cern.ch/cmsset_default.sh
 cd /afs/cern.ch/work/a/algomez/jetObservables/CMSSW_10_6_14/src/jetObservables/Unfolding/test/
 eval `scramv1 runtime -sh`
 env
-echo "Running: python runTUnfold.py -v v03 --only ${1} -y ${2} --outputFolder ${3}"
-time python runTUnfold.py -v v03 --only ${1} -p MCSelfClosure -y ${2} --outputFolder ${3} --main Ptbin
-time python runTUnfold.py -v v03 --only ${1} -p MCSelfClosure -y ${2} --outputFolder ${3} --main HTbin
-time python runTUnfold.py -v v03 --only ${1} -p MCSelfClosure -y ${2} --outputFolder ${3} --main herwig
-time python runTUnfold.py -v v03 --only ${1} -p MCClosure -y ${2} --outputFolder ${3} --main Ptbin --alt herwig
-time python runTUnfold.py -v v03 --only ${1} -p MCClosure -y ${2} --outputFolder ${3} --main Ptbin --alt HTbin
-time python runTUnfold.py -v v03 --only ${1} -p MCClosure -y ${2} --outputFolder ${3} --main HTbin --alt herwig
-time python runTUnfold.py -v v03 --only ${1} -p MCClosure -y ${2} --outputFolder ${3} --main HTbin --alt Ptbin
-time python runTUnfold.py -v v03 --only ${1} -p data -y ${2} --outputFolder ${3} --main Ptbin --alt herwig
-time python runTUnfold.py -v v03 --only ${1} -p data -y ${2} --outputFolder ${3} --main HTbin --alt herwig
+ivar=${1}
+folder=${2}
+echo "Running: python runTUnfold.py -v v04 --only ${ivar} --outputFolder ${folder}"
+for year in 2017 2018;
+do
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y ${year} --outputFolder ${folder} --main Ptbin
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y ${year} --outputFolder ${folder} --main HTbin
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y ${year} --outputFolder ${folder} --main herwig
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y ${year} --outputFolder ${folder} --main Ptbin --alt HTbin --noUnc
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y ${year} --outputFolder ${folder} --main HTbin --alt herwig
+    time python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y ${year} --outputFolder ${folder} --main HTbin --alt Ptbin
+    time python runTUnfold.py -v v04 --only ${ivar} -p data -y ${year} --outputFolder ${folder} --main HTbin --alt herwig
+done
+
+python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main Ptbin
+python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main HTbin
+python runTUnfold.py -v v04 --only ${ivar} -p MCSelfClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main herwig
+python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main Ptbin --alt HTbin --noUnc
+python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main HTbin --alt Ptbin
+python runTUnfold.py -v v04 --only ${ivar} -p MCClosure -y all --inputFolder ${folder} --outputFolder ${folder} --main HTbin --alt herwig
+python runTUnfold.py -v v04 --only ${ivar} -p MCCrossClosure -y all --main HTbin --alt herwig --inputFolder ${folder} --outputFolder ${folder} --noUnc
+python runTUnfold.py -v v04 --only ${ivar} -p data -y all --inputFolder ${folder} --outputFolder ${folder} --main HTbin --alt herwig

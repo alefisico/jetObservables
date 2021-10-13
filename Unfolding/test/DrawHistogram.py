@@ -161,8 +161,9 @@ def plotSysComparison( nomHisto, dictUncHistos, outputName, labelX='', log=False
 
     binWidth = nomHisto.GetBinWidth(1)
 
-    legend=ROOT.TLegend(0.70,0.65,0.90,0.87)
+    legend=ROOT.TLegend(0.20,0.65,0.90,0.87)
     legend.SetFillStyle(0)
+    legend.SetNColumns(3)
     legend.SetTextSize(0.04)
 
     multiGraph = ROOT.TMultiGraph()
@@ -192,7 +193,7 @@ def plotSysComparison( nomHisto, dictUncHistos, outputName, labelX='', log=False
     multiGraph.GetYaxis().SetTitle( 'Ratio Unc/Nominal' )
     multiGraph.GetXaxis().SetTitle( labelX )
     multiGraph.SetMaximum( 1.5 )
-    multiGraph.SetMinimum( 0.5 )
+    multiGraph.SetMinimum( 0.7 )
     multiGraph.Draw('ALP')
 
     CMS_lumi.cmsTextOffset = 0.0
@@ -203,6 +204,8 @@ def plotSysComparison( nomHisto, dictUncHistos, outputName, labelX='', log=False
     legend.Draw()
 
     canUnc.SaveAs( outputDir + outputFileName )
+    if ext.startswith('pdf'):
+        canUnc.SaveAs( outputDir + outputFileName.replace('pdf', 'png') )
     del canUnc
 
 ##################################################
