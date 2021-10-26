@@ -17,6 +17,7 @@ class nSubProd(Module):
         self.isMC = isMC
         self.onlyUnc = onlyUnc
         self.onlyTrees = onlyTrees
+        self.runSDVariables = False
 
         self.recoLevel=0
         self.fakes=0
@@ -32,6 +33,7 @@ class nSubProd(Module):
         self.minLeadAK8JetPtDijet = 200.
         self.minAK8JetPt = 170  ### this is the basic minimum, not the final
         self.maxJetAK8Eta = 2.4
+        self.diffPt = [ 200, 350, 500, 750, 1000, 10000 ]
 
         ### Kinematics Cuts Jets ###
         self.minJetPt = 25
@@ -139,7 +141,8 @@ class nSubProd(Module):
 
         ### Helpers
         self.kinematic_labels = ["_pt", "_eta", "_phi", "_mass"]
-        self.nJet = [ 'Jet1', 'Jet2', 'sdJet1', 'sdJet2' ]
+        self.nJet = [ 'Jet1', 'Jet2' ]
+        if self.runSDVariables: self.nJet = [ 'Jet1', 'Jet2', 'sdJet1', 'sdJet2' ]
 
         ### Uncerstinties
         self.sysSource = ['_nom'] + [ isys+i for i in [ 'Up', 'Down' ] for isys in sysSource if not isys.endswith('nom') ]
@@ -194,7 +197,7 @@ class nSubProd(Module):
                     #self.addP4Hists( 'ufogen'+iJ, isel )
                     self.addP4Hists( 'reco'+iJ+'_sortedPt', isel )
                     if self.isMC: self.addP4Hists( 'gen'+iJ+'_sortedPt', isel )
-                    for itype in ( [ 'gen', 'missgen', 'accepgen', 'reco', 'fakereco', 'truereco' ] if self.isMC else [ 'reco' ] ):
+                    for itype in ( [ 'gen', 'accepgen', 'reco', 'truereco' ] if self.isMC else [ 'reco' ] ):
 
                         if itype.endswith('reco'):
 
@@ -226,13 +229,44 @@ class nSubProd(Module):
                             for x, y in self.nSub_labels.items():
                                 self.addObject( ROOT.TH1F(itype+iJ+x+isel, ';AK8 '+itype+' jet '+x, y[1], 0, y[0] ) )
 
+            if self.isMC:
+                extSelList = ['_'+str(x)+'_dijetSel' for x in self.diffPt if x<10000 ]
+            else:
+                extSelList = [ '_'+str(y)+'_'+x+'_dijetSel' for x in self.triggerTable  for y in self.diffPt if y<10000 ] + [ '_'+str(y)+'_'+x+'_weight_dijetSel' for x in self.triggerTable for y in self.diffPt if y<10000 ]
+            for isel in extSelList:
+                for iJ in self.nJet:
+                    for itype in ( [ 'gen', 'reco' ] if self.isMC else [ 'reco' ] ):
+
+                        if itype.endswith('reco'):
+
+                            for sysUnc in self.sysSource:
+                                self.addObject( ROOT.TH1F(itype+iJ+'_pt'+sysUnc+isel, ';AK8 '+itype+' jet pt', 200, 0, 2000) )
+                                self.addObject( ROOT.TH1F(itype+iJ+'_tau21'+sysUnc+isel, ';AK8 '+itype+' jet #tau_{21}', tauBins, 0, 1) )
+                                self.addObject( ROOT.TH1F(itype+iJ+'_tau32'+sysUnc+isel, ';AK8 '+itype+' jet #tau_{32}', tauBins, 0, 1) )
+
+                                if self.isMC:
+                                    self.addObject( ROOT.TH2F('resp'+iJ+'_tau21'+sysUnc+isel, ';AK8 accepgen jet #tau_{21};AK8 truereco jet #tau_{21}', tauBins, 0, 1, tauBins, 0, 1) )
+                                    self.addObject( ROOT.TH2F('resp'+iJ+'_tau32'+sysUnc+isel, ';AK8 accepgen jet #tau_{32};AK8 truereco jet #tau_{32}', tauBins, 0, 1, tauBins, 0, 1) )
+
+                                for x, y in self.nSub_labels.items():
+                                    self.addObject( ROOT.TH1F(itype+iJ+x+sysUnc+isel, ';AK8 '+itype+' jet #tau', y[1], 0, y[0] ) )
+                                    if itype.startswith('reco') and self.isMC:
+                                        self.addObject( ROOT.TH2F('resp'+iJ+x+sysUnc+isel, ';AK8 gen jet '+x+';AK8 reco jet '+x, y[1], 0, y[0], y[1], 0, y[0] ) )
+                        else:
+
+                            self.addObject( ROOT.TH1F(itype+iJ+'_pt'+isel, ';AK8 '+itype+' jet pt', 200, 0, 2000) )
+                            self.addObject( ROOT.TH1F(itype+iJ+'_tau21'+isel, ';AK8 '+itype+' jet #tau_{21}', tauBins, 0, 1) )
+                            self.addObject( ROOT.TH1F(itype+iJ+'_tau32'+isel, ';AK8 '+itype+' jet #tau_{32}', tauBins, 0, 1) )
+
+                            for x, y in self.nSub_labels.items():
+                                self.addObject( ROOT.TH1F(itype+iJ+x+isel, ';AK8 '+itype+' jet '+x, y[1], 0, y[0] ) )
 
     #############################################################################
     def addP4Hists(self, s, t ):
-        self.addObject( ROOT.TH1F(s+'_pt'+t,  s+';p_{T} (GeV)',   200, 0, 2000) )
-        self.addObject( ROOT.TH1F(s+'_eta'+t, s+';#eta', 100, -4.0, 4.0 ) )
-        self.addObject( ROOT.TH1F(s+'_phi'+t, s+';#phi', 100, -3.14259, 3.14159) )
-        self.addObject( ROOT.TH1F(s+'_mass'+t,s+';mass (GeV)', 100, 0, 1000) )
+        self.addObject( ROOT.TH1F(s+'_pt'+t,  ';p_{T} (GeV)',   200, 0, 2000) )
+        self.addObject( ROOT.TH1F(s+'_eta'+t, ';#eta', 100, -4.0, 4.0 ) )
+        self.addObject( ROOT.TH1F(s+'_phi'+t, ';#phi', 100, -3.14259, 3.14159) )
+        self.addObject( ROOT.TH1F(s+'_mass'+t,';mass (GeV)', 100, 0, 1000) )
 
 
     #############################################################################
@@ -266,12 +300,14 @@ class nSubProd(Module):
                 self.out.branch(iJ+'_mass',  'F', lenVar='n'+iJ)
                 self.out.branch(iJ+'_Tau21',  'F', lenVar='n'+iJ)
                 self.out.branch(iJ+'_Tau32',  'F', lenVar='n'+iJ)
-                self.out.branch(iJ+'_SD_Tau21',  'F', lenVar='n'+iJ)
-                self.out.branch(iJ+'_SD_Tau32',  'F', lenVar='n'+iJ)
+                if self.runSDVariables:
+                    self.out.branch(iJ+'_SD_Tau21',  'F', lenVar='n'+iJ)
+                    self.out.branch(iJ+'_SD_Tau32',  'F', lenVar='n'+iJ)
 
                 for x in self.nSub_labels:
                     self.out.branch(iJ+x, 'F', lenVar='n'+iJ )
-                    self.out.branch(iJ+'SD'+x, 'F', lenVar='n'+iJ )
+                    if self.runSDVariables:
+                        self.out.branch(iJ+'SD'+x, 'F', lenVar='n'+iJ )
         pass
 
     #############################################################################
@@ -376,18 +412,25 @@ class nSubProd(Module):
 
                 if sys.startswith(self.sysWeightList):
                     ##### PDF does not work
-                    if sys.endswith('pdfWeightUp'):
-                        self.pdfWeightUp = getattr( event, 'LHEPdfWeight' )[0]
-                        WEIGHT = event.genWeight * self.pdfWeightUp
-                    elif sys.endswith('pdfWeightDown'):
-                        self.pdfWeightDown = (getattr( event, 'LHEPdfWeight' )[0] )
-                        WEIGHT = event.genWeight * self.pdfWeightDown
+                    if sys.startswith('_pdfWeight'):
+                        arr =  getattr( event, 'LHEPdfWeight' )
+                        size = arr.GetSize() # force loading of array contents for this entry
+                        buf = arr.GetAddress() # still not sure this is always equivalent to `&arr[0]`
+                        buf.SetSize(size)
+                        npLHEPdfWeight = np.frombuffer(buf, count=size, dtype='float32')
+                        pdfWeight = np.std(npLHEPdfWeight)
+                        if sys.endswith('Up'):
+                            self.pdfWeightUp = 1 + pdfWeight
+                            WEIGHT = event.genWeight * self.pdfWeightUp
+                        else:
+                            self.pdfWeightDown = 1 - pdfWeight
+                            WEIGHT = event.genWeight * self.pdfWeightDown
                     elif sys.endswith('isrWeightDown'):
                         self.isrWeightDown = getattr( event, 'PSWeight' )[0]
                         WEIGHT = event.genWeight * self.isrWeightDown
                     elif sys.endswith('fsrWeightDown'):
                         self.fsrWeightDown = getattr( event, 'PSWeight' )[1]
-                        WEIGHT = event.genWeight * self.isrWeightDown
+                        WEIGHT = event.genWeight * self.fsrWeightDown
                     elif sys.endswith('isrWeightUp'):
                         self.isrWeightUp = getattr( event, 'PSWeight' )[2]
                         WEIGHT = event.genWeight * self.isrWeightUp
@@ -403,43 +446,45 @@ class nSubProd(Module):
 
                         if ( getattr(ireco['jet'], 'pt'+( '_nom' if sys.startswith(self.sysWeightList) else sys ) ) > self.minLeadAK8JetPtDijet ):
 
+                            tmpSel = iRecoSel[sys].replace('_dijet', '_weight_dijet') if not self.isMC else iRecoSel[sys]
+                            tmpWeight = WEIGHT if not self.isMC else self.triggerWeight
                             if sys.startswith(self.sysWeightList):
-                                getattr( self, 'reco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt_nom' ), WEIGHT )
-                                getattr( self, 'reco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop_nom' ), WEIGHT )
+                                getattr( self, 'reco'+iRJ+'_pt'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'pt_nom' ), tmpWeight )
+                                getattr( self, 'reco'+iRJ+'_mass'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'msoftdrop_nom' ), tmpWeight )
                             else:
-                                getattr( self, 'reco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt'+sys ), WEIGHT )
-                                getattr( self, 'reco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop'+sys ), WEIGHT )
-                            getattr( self, 'reco'+iRJ+'_eta'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'eta'), WEIGHT )
-                            getattr( self, 'reco'+iRJ+'_phi'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'phi'), WEIGHT )
-                            getattr( self, 'reco'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['tau21'], WEIGHT )
-                            getattr( self, 'reco'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['tau32'], WEIGHT )
-                            getattr( self, 'recosd'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['sdtau21'], WEIGHT )
-                            getattr( self, 'recosd'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['sdtau32'], WEIGHT )
+                                getattr( self, 'reco'+iRJ+'_pt'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'pt'+sys ), tmpWeight )
+                                getattr( self, 'reco'+iRJ+'_mass'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'msoftdrop'+sys ), tmpWeight )
+                            getattr( self, 'reco'+iRJ+'_eta'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'eta'), tmpWeight )
+                            getattr( self, 'reco'+iRJ+'_phi'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'phi'), tmpWeight )
+                            getattr( self, 'reco'+iRJ+'_tau21'+sys+tmpSel ).Fill( ireco['tau21'], tmpWeight )
+                            getattr( self, 'reco'+iRJ+'_tau32'+sys+tmpSel ).Fill( ireco['tau32'], tmpWeight )
+                            if self.runSDVariables:
+                                getattr( self, 'recosd'+iRJ+'_tau21'+sys+tmpSel ).Fill( ireco['sdtau21'], tmpWeight )
+                                getattr( self, 'recosd'+iRJ+'_tau32'+sys+tmpSel ).Fill( ireco['sdtau32'], tmpWeight )
                             for tauN in range(1, self.maxTau+1):
-                                getattr( self, 'reco'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['0p5'+str(tauN)], WEIGHT )
-                                getattr( self, 'reco'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['1'+str(tauN)], WEIGHT )
-                                getattr( self, 'reco'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['2'+str(tauN)], WEIGHT )
-                                getattr( self, 'recosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd0p5'+str(tauN)], WEIGHT )
-                                getattr( self, 'recosd'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd1'+str(tauN)], WEIGHT )
-                                getattr( self, 'recosd'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd2'+str(tauN)], WEIGHT )
+                                getattr( self, 'reco'+iRJ+'_tau_0p5_'+str(tauN)+sys+tmpSel ).Fill( ireco['0p5'+str(tauN)], tmpWeight )
+                                getattr( self, 'reco'+iRJ+'_tau_1_'+str(tauN)+sys+tmpSel ).Fill( ireco['1'+str(tauN)], tmpWeight )
+                                getattr( self, 'reco'+iRJ+'_tau_2_'+str(tauN)+sys+tmpSel ).Fill( ireco['2'+str(tauN)], tmpWeight )
+                                if self.runSDVariables:
+                                    getattr( self, 'recosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd0p5'+str(tauN)], tmpWeight )
+                                    getattr( self, 'recosd'+iRJ+'_tau_1_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd1'+str(tauN)], tmpWeight )
+                                    getattr( self, 'recosd'+iRJ+'_tau_2_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd2'+str(tauN)], tmpWeight )
 
-                            if not self.isMC:
-                                tmpSel = iRecoSel[sys].replace('_dijet', '_weight_dijet')
-                                getattr( self, 'reco'+iRJ+'_pt'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'pt'+sys ), self.triggerWeight )
-                                getattr( self, 'reco'+iRJ+'_mass'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'msoftdrop'+sys ), self.triggerWeight )
-                                getattr( self, 'reco'+iRJ+'_eta'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'eta'), self.triggerWeight )
-                                getattr( self, 'reco'+iRJ+'_phi'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'phi'), self.triggerWeight )
-                                getattr( self, 'reco'+iRJ+'_tau21'+sys+tmpSel ).Fill( ireco['tau21'], self.triggerWeight )
-                                getattr( self, 'reco'+iRJ+'_tau32'+sys+tmpSel ).Fill( ireco['tau32'], self.triggerWeight )
-                                getattr( self, 'recosd'+iRJ+'_tau21'+sys+tmpSel ).Fill( ireco['sdtau21'], self.triggerWeight )
-                                getattr( self, 'recosd'+iRJ+'_tau32'+sys+tmpSel ).Fill( ireco['sdtau32'], self.triggerWeight )
-                                for tauN in range(1, self.maxTau+1):
-                                    getattr( self, 'reco'+iRJ+'_tau_0p5_'+str(tauN)+sys+tmpSel ).Fill( ireco['0p5'+str(tauN)], self.triggerWeight )
-                                    getattr( self, 'reco'+iRJ+'_tau_1_'+str(tauN)+sys+tmpSel ).Fill( ireco['1'+str(tauN)], self.triggerWeight )
-                                    getattr( self, 'reco'+iRJ+'_tau_2_'+str(tauN)+sys+tmpSel ).Fill( ireco['2'+str(tauN)], self.triggerWeight )
-                                    getattr( self, 'recosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd0p5'+str(tauN)], self.triggerWeight )
-                                    getattr( self, 'recosd'+iRJ+'_tau_1_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd1'+str(tauN)], self.triggerWeight )
-                                    getattr( self, 'recosd'+iRJ+'_tau_2_'+str(tauN)+sys+tmpSel ).Fill( ireco['sd2'+str(tauN)], self.triggerWeight )
+                            ##### differential pt
+                            tmpRecoPt = getattr(ireco['jet'], 'pt'+( '_nom' if sys.startswith(self.sysWeightList) else sys ))
+                            for i in range( 0, len(self.diffPt)-1):
+                                if ( tmpRecoPt > self.diffPt[i] ) & ( tmpRecoPt < self.diffPt[i+1] ):
+                                    getattr( self, 'reco'+iRJ+'_pt'+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( tmpRecoPt, tmpWeight )
+                                    getattr( self, 'reco'+iRJ+'_tau21'+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['tau21'], tmpWeight )
+                                    getattr( self, 'reco'+iRJ+'_tau32'+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['tau32'], tmpWeight )
+                                    if self.runSDVariables:
+                                        getattr( self, 'recosd'+iRJ+'_tau21'+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['sdtau21'], tmpWeight )
+                                        getattr( self, 'recosd'+iRJ+'_tau32'+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['sdtau32'], tmpWeight )
+                                    for tauN in range(1, self.maxTau+1):
+                                        getattr( self, 'reco'+iRJ+'_tau_0p5_'+str(tauN)+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['0p5'+str(tauN)], tmpWeight )
+                                        getattr( self, 'reco'+iRJ+'_tau_1_'+str(tauN)+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['1'+str(tauN)], tmpWeight )
+                                        getattr( self, 'reco'+iRJ+'_tau_2_'+str(tauN)+sys+'_'+str(self.diffPt[i])+tmpSel ).Fill( ireco['2'+str(tauN)], tmpWeight )
+
 
                 if self.isMC:
                     if passGenSel:  ##### go to matrix
@@ -472,8 +517,9 @@ class nSubProd(Module):
                                     getattr( self, 'accepgen'+iGJ+'_phi'+iGenSel ).Fill( igen['jet'].phi, event.genWeight )
                                     getattr( self, 'accepgen'+iGJ+'_tau21'+iGenSel ).Fill( igen['tau21'], event.genWeight )
                                     getattr( self, 'accepgen'+iGJ+'_tau32'+iGenSel ).Fill( igen['tau32'], event.genWeight )
-                                    getattr( self, 'accepgensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
-                                    getattr( self, 'accepgensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
+                                    if self.runSDVariables:
+                                        getattr( self, 'accepgensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
+                                        getattr( self, 'accepgensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
 
                                     getattr( self, 'gen'+iGJ+'_pt'+iGenSel ).Fill( igen['jet'].pt, event.genWeight )
                                     getattr( self, 'gen'+iGJ+'_eta'+iGenSel ).Fill( igen['jet'].eta, event.genWeight )
@@ -481,23 +527,37 @@ class nSubProd(Module):
                                     getattr( self, 'gen'+iGJ+'_phi'+iGenSel ).Fill( igen['jet'].phi, event.genWeight )
                                     getattr( self, 'gen'+iGJ+'_tau21'+iGenSel ).Fill( igen['tau21'], event.genWeight )
                                     getattr( self, 'gen'+iGJ+'_tau32'+iGenSel ).Fill( igen['tau32'], event.genWeight )
-                                    getattr( self, 'gensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
-                                    getattr( self, 'gensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
+                                    if self.runSDVariables:
+                                        getattr( self, 'gensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
+                                        getattr( self, 'gensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
 
                                     for tauN in range(1, self.maxTau+1):
                                         getattr( self, 'accepgen'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
                                         getattr( self, 'accepgen'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
                                         getattr( self, 'accepgen'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
-                                        getattr( self, 'accepgensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
-                                        getattr( self, 'accepgensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
-                                        getattr( self, 'accepgensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
+                                        if self.runSDVariables:
+                                            getattr( self, 'accepgensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
+                                            getattr( self, 'accepgensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
+                                            getattr( self, 'accepgensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
 
                                         getattr( self, 'gen'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
                                         getattr( self, 'gen'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
                                         getattr( self, 'gen'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
-                                        getattr( self, 'gensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
-                                        getattr( self, 'gensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
-                                        getattr( self, 'gensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
+                                        if self.runSDVariables:
+                                            getattr( self, 'gensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
+                                            getattr( self, 'gensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
+                                            getattr( self, 'gensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
+
+                                    tmpGenPt = getattr(igen['jet'], 'pt')
+                                    for i in range( 0, len(self.diffPt)-1):
+                                        if ( tmpGenPt > self.diffPt[i] ) & ( tmpGenPt < self.diffPt[i+1] ):
+                                            getattr( self, 'gen'+iGJ+'_pt'+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['jet'].pt, event.genWeight )
+                                            getattr( self, 'gen'+iGJ+'_tau21'+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['tau21'], event.genWeight )
+                                            getattr( self, 'gen'+iGJ+'_tau32'+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['tau32'], event.genWeight )
+                                            for tauN in range(1, self.maxTau+1):
+                                                getattr( self, 'gen'+iGJ+'_tau_0p5_'+str(tauN)+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
+                                                getattr( self, 'gen'+iGJ+'_tau_1_'+str(tauN)+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
+                                                getattr( self, 'gen'+iGJ+'_tau_2_'+str(tauN)+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
 
                                 if ( getattr(ireco['jet'], 'pt'+(sys if not sys.startswith(self.sysWeightList) else '_nom')) > self.minLeadAK8JetPtDijet ):
 
@@ -511,15 +571,17 @@ class nSubProd(Module):
                                     getattr( self, 'truereco'+iRJ+'_phi'+sys+iGenSel ).Fill( getattr(ireco['jet'], 'phi'), WEIGHT )
                                     getattr( self, 'truereco'+iRJ+'_tau21'+sys+iGenSel ).Fill( ireco['tau21'], WEIGHT )
                                     getattr( self, 'truereco'+iRJ+'_tau32'+sys+iGenSel ).Fill( ireco['tau32'], WEIGHT )
-                                    getattr( self, 'truerecosd'+iRJ+'_tau21'+sys+iGenSel ).Fill( ireco['sdtau21'], WEIGHT )
-                                    getattr( self, 'truerecosd'+iRJ+'_tau32'+sys+iGenSel ).Fill( ireco['sdtau32'], WEIGHT )
+                                    if self.runSDVariables:
+                                        getattr( self, 'truerecosd'+iRJ+'_tau21'+sys+iGenSel ).Fill( ireco['sdtau21'], WEIGHT )
+                                        getattr( self, 'truerecosd'+iRJ+'_tau32'+sys+iGenSel ).Fill( ireco['sdtau32'], WEIGHT )
                                     for tauN in range(1, self.maxTau+1):
                                         getattr( self, 'truereco'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( ireco['0p5'+str(tauN)], WEIGHT )
                                         getattr( self, 'truereco'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( ireco['1'+str(tauN)], WEIGHT )
                                         getattr( self, 'truereco'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( ireco['2'+str(tauN)], WEIGHT )
-                                        getattr( self, 'truerecosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd0p5'+str(tauN)], WEIGHT )
-                                        getattr( self, 'truerecosd'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd1'+str(tauN)], WEIGHT )
-                                        getattr( self, 'truerecosd'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd2'+str(tauN)], WEIGHT )
+                                        if self.runSDVariables:
+                                            getattr( self, 'truerecosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd0p5'+str(tauN)], WEIGHT )
+                                            getattr( self, 'truerecosd'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd1'+str(tauN)], WEIGHT )
+                                            getattr( self, 'truerecosd'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( ireco['sd2'+str(tauN)], WEIGHT )
 
                                 #### FIlling response matrices
                                 if self.isMC:
@@ -530,32 +592,49 @@ class nSubProd(Module):
                                         getattr( self, 'resol'+iRJ+'_tau32'+iGenSel ).Fill( ireco['tau32']/igen['tau32'], WEIGHT )
                                         #getattr( self, 'resolsd'+iRJ+'_pt'+iGenSel ).Fill( getattr(ireco['sdjet'], 'pt')/getattr(igen['sdjet'], 'pt'), WEIGHT )
                                         #getattr( self, 'resolsd'+iRJ+'_sdmass'+iGenSel ).Fill( getattr(ireco['sdjet'], 'mass')/getattr(igen['sdjet'], 'mass'), WEIGHT )
-                                        try:
-                                            getattr( self, 'resolsd'+iRJ+'_tau21'+iGenSel ).Fill( ireco['sdtau21']/igen['sdtau21'], WEIGHT )
-                                            getattr( self, 'resolsd'+iRJ+'_tau32'+iGenSel ).Fill( ireco['sdtau32']/igen['sdtau32'], WEIGHT )
-                                        except ZeroDivisionError:
-                                            getattr( self, 'resolsd'+iRJ+'_tau21'+iGenSel ).Fill( -1, WEIGHT )
-                                            getattr( self, 'resolsd'+iRJ+'_tau32'+iGenSel ).Fill( -1, WEIGHT )
+                                        if self.runSDVariables:
+                                            try:
+                                                getattr( self, 'resolsd'+iRJ+'_tau21'+iGenSel ).Fill( ireco['sdtau21']/igen['sdtau21'], WEIGHT )
+                                                getattr( self, 'resolsd'+iRJ+'_tau32'+iGenSel ).Fill( ireco['sdtau32']/igen['sdtau32'], WEIGHT )
+                                            except ZeroDivisionError:
+                                                getattr( self, 'resolsd'+iRJ+'_tau21'+iGenSel ).Fill( -1, WEIGHT )
+                                                getattr( self, 'resolsd'+iRJ+'_tau32'+iGenSel ).Fill( -1, WEIGHT )
 
                                     getattr( self, 'resp'+iRJ+'_tau21'+sys+iGenSel ).Fill( igen['tau21'], ireco['tau21'], WEIGHT )
                                     getattr( self, 'resp'+iRJ+'_tau32'+sys+iGenSel ).Fill( igen['tau32'], ireco['tau32'], WEIGHT )
-                                    getattr( self, 'respsd'+iRJ+'_tau21'+sys+iGenSel ).Fill( igen['sdtau21'], ireco['sdtau21'], WEIGHT )
-                                    getattr( self, 'respsd'+iRJ+'_tau32'+sys+iGenSel ).Fill( igen['sdtau32'], ireco['sdtau32'], WEIGHT )
+                                    if self.runSDVariables:
+                                        getattr( self, 'respsd'+iRJ+'_tau21'+sys+iGenSel ).Fill( igen['sdtau21'], ireco['sdtau21'], WEIGHT )
+                                        getattr( self, 'respsd'+iRJ+'_tau32'+sys+iGenSel ).Fill( igen['sdtau32'], ireco['sdtau32'], WEIGHT )
                                     for tauN in range(1, self.maxTau+1):
                                         getattr( self, 'resp'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( igen['0p5'+str(tauN)], ireco['0p5'+str(tauN)], WEIGHT )
                                         getattr( self, 'resp'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( igen['1'+str(tauN)], ireco['1'+str(tauN)], WEIGHT )
                                         getattr( self, 'resp'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( igen['2'+str(tauN)], ireco['2'+str(tauN)], WEIGHT )
-                                        getattr( self, 'respsd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( igen['sd0p5'+str(tauN)], ireco['sd0p5'+str(tauN)], WEIGHT )
-                                        getattr( self, 'respsd'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( igen['sd1'+str(tauN)], ireco['sd1'+str(tauN)], WEIGHT )
-                                        getattr( self, 'respsd'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( igen['sd2'+str(tauN)], ireco['sd2'+str(tauN)], WEIGHT )
+                                        if self.runSDVariables:
+                                            getattr( self, 'respsd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iGenSel ).Fill( igen['sd0p5'+str(tauN)], ireco['sd0p5'+str(tauN)], WEIGHT )
+                                            getattr( self, 'respsd'+iRJ+'_tau_1_'+str(tauN)+sys+iGenSel ).Fill( igen['sd1'+str(tauN)], ireco['sd1'+str(tauN)], WEIGHT )
+                                            getattr( self, 'respsd'+iRJ+'_tau_2_'+str(tauN)+sys+iGenSel ).Fill( igen['sd2'+str(tauN)], ireco['sd2'+str(tauN)], WEIGHT )
                                         if sys.endswith('nom'):
                                             getattr( self, 'resol'+iRJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( ( ireco['0p5'+str(tauN)]/igen['0p5'+str(tauN)] if igen['0p5'+str(tauN)]!=0 else -999 ), WEIGHT )
                                             getattr( self, 'resol'+iRJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( ( ireco['1'+str(tauN)]/igen['1'+str(tauN)] if igen['1'+str(tauN)]!=0 else -999 ), WEIGHT )
                                             getattr( self, 'resol'+iRJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( ( ireco['2'+str(tauN)]/igen['2'+str(tauN)] if igen['2'+str(tauN)]!=0 else -999 ), WEIGHT )
-                                            getattr( self, 'resolsd'+iRJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( ( ireco['sd0p5'+str(tauN)]/igen['sd0p5'+str(tauN)] if igen['sd0p5'+str(tauN)]!=0 else -999 ), WEIGHT )
-                                            getattr( self, 'resolsd'+iRJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( ( ireco['sd1'+str(tauN)]/igen['sd1'+str(tauN)] if igen['sd1'+str(tauN)]!=0 else -999 ), WEIGHT )
-                                            getattr( self, 'resolsd'+iRJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( ( ireco['sd2'+str(tauN)]/igen['sd2'+str(tauN)] if igen['sd2'+str(tauN)]!=0 else -999 ), WEIGHT )
+                                            if self.runSDVariables:
+                                                getattr( self, 'resolsd'+iRJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( ( ireco['sd0p5'+str(tauN)]/igen['sd0p5'+str(tauN)] if igen['sd0p5'+str(tauN)]!=0 else -999 ), WEIGHT )
+                                                getattr( self, 'resolsd'+iRJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( ( ireco['sd1'+str(tauN)]/igen['sd1'+str(tauN)] if igen['sd1'+str(tauN)]!=0 else -999 ), WEIGHT )
+                                                getattr( self, 'resolsd'+iRJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( ( ireco['sd2'+str(tauN)]/igen['sd2'+str(tauN)] if igen['sd2'+str(tauN)]!=0 else -999 ), WEIGHT )
 
+                                    ##### differential pt
+                                    tmpRecoPt = getattr(ireco['jet'], 'pt'+( '_nom' if sys.startswith(self.sysWeightList) else sys ))
+                                    tmpGenPt = getattr(igen['jet'], 'pt')
+                                    for i in range( 0, len(self.diffPt)-1):
+                                        tmpReco = ( tmpRecoPt > self.diffPt[i] ) & ( tmpRecoPt < self.diffPt[i+1] )
+                                        tmpGen = ( tmpGenPt > self.diffPt[i] ) & ( tmpGenPt < self.diffPt[i+1] )
+                                        if tmpReco & tmpGen:
+                                            getattr( self, 'resp'+iRJ+'_tau21'+sys+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['tau21'], ireco['tau21'], WEIGHT )
+                                            getattr( self, 'resp'+iRJ+'_tau32'+sys+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['tau32'], ireco['tau32'], WEIGHT )
+                                            for tauN in range(1, self.maxTau+1):
+                                                getattr( self, 'resp'+iRJ+'_tau_0p5_'+str(tauN)+sys+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['0p5'+str(tauN)], ireco['0p5'+str(tauN)], WEIGHT )
+                                                getattr( self, 'resp'+iRJ+'_tau_1_'+str(tauN)+sys+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['1'+str(tauN)], ireco['1'+str(tauN)], WEIGHT )
+                                                getattr( self, 'resp'+iRJ+'_tau_2_'+str(tauN)+sys+'_'+str(self.diffPt[i])+iGenSel ).Fill( igen['2'+str(tauN)], ireco['2'+str(tauN)], WEIGHT )
 
                         else: self.ufoResponse = self.ufoResponse+1
 
@@ -563,30 +642,32 @@ class nSubProd(Module):
                         self.fakes = self.fakes+1
                         self.eventCategory = 2
 
-                        if not self.onlyTrees:
-                            for iRJ,ireco in recoJet.items():
-
-                                if ( getattr(ireco['jet'], 'pt'+(sys if not sys.startswith(self.sysWeightList) else '_nom')) > self.minLeadAK8JetPtDijet ):
-
-                                    if sys.startswith(self.sysWeightList):
-                                        getattr( self, 'fakereco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt_nom' ), WEIGHT )
-                                        getattr( self, 'fakereco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop_nom' ), WEIGHT )
-                                    else:
-                                        getattr( self, 'fakereco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt'+sys ), WEIGHT )
-                                        getattr( self, 'fakereco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop'+sys ), WEIGHT )
-                                    getattr( self, 'fakereco'+iRJ+'_eta'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'eta'), WEIGHT )
-                                    getattr( self, 'fakereco'+iRJ+'_phi'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'phi'), WEIGHT )
-                                    getattr( self, 'fakereco'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['tau21'], WEIGHT )
-                                    getattr( self, 'fakereco'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['tau32'], WEIGHT )
-                                    getattr( self, 'fakerecosd'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['sdtau21'], WEIGHT )
-                                    getattr( self, 'fakerecosd'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['sdtau32'], WEIGHT )
-                                    for tauN in range(1, self.maxTau+1):
-                                        getattr( self, 'fakereco'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['0p5'+str(tauN)], WEIGHT )
-                                        getattr( self, 'fakereco'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['1'+str(tauN)], WEIGHT )
-                                        getattr( self, 'fakereco'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['2'+str(tauN)], WEIGHT )
-                                        getattr( self, 'fakerecosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd0p5'+str(tauN)], WEIGHT )
-                                        getattr( self, 'fakerecosd'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd1'+str(tauN)], WEIGHT )
-                                        getattr( self, 'fakerecosd'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd2'+str(tauN)], WEIGHT )
+#                        if not self.onlyTrees:
+#                            for iRJ,ireco in recoJet.items():
+#
+#                                if ( getattr(ireco['jet'], 'pt'+(sys if not sys.startswith(self.sysWeightList) else '_nom')) > self.minLeadAK8JetPtDijet ):
+#
+#                                    if sys.startswith(self.sysWeightList):
+#                                        getattr( self, 'fakereco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt_nom' ), WEIGHT )
+#                                        getattr( self, 'fakereco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop_nom' ), WEIGHT )
+#                                    else:
+#                                        getattr( self, 'fakereco'+iRJ+'_pt'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'pt'+sys ), WEIGHT )
+#                                        getattr( self, 'fakereco'+iRJ+'_mass'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'msoftdrop'+sys ), WEIGHT )
+#                                    getattr( self, 'fakereco'+iRJ+'_eta'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'eta'), WEIGHT )
+#                                    getattr( self, 'fakereco'+iRJ+'_phi'+sys+iRecoSel[sys] ).Fill( getattr(ireco['jet'], 'phi'), WEIGHT )
+#                                    getattr( self, 'fakereco'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['tau21'], WEIGHT )
+#                                    getattr( self, 'fakereco'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['tau32'], WEIGHT )
+#                                    if self.runSDVariables:
+#                                        getattr( self, 'fakerecosd'+iRJ+'_tau21'+sys+iRecoSel[sys] ).Fill( ireco['sdtau21'], WEIGHT )
+#                                        getattr( self, 'fakerecosd'+iRJ+'_tau32'+sys+iRecoSel[sys] ).Fill( ireco['sdtau32'], WEIGHT )
+#                                    for tauN in range(1, self.maxTau+1):
+#                                        getattr( self, 'fakereco'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['0p5'+str(tauN)], WEIGHT )
+#                                        getattr( self, 'fakereco'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['1'+str(tauN)], WEIGHT )
+#                                        getattr( self, 'fakereco'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['2'+str(tauN)], WEIGHT )
+#                                        if self.runSDVariables:
+#                                            getattr( self, 'fakerecosd'+iRJ+'_tau_0p5_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd0p5'+str(tauN)], WEIGHT )
+#                                            getattr( self, 'fakerecosd'+iRJ+'_tau_1_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd1'+str(tauN)], WEIGHT )
+#                                            getattr( self, 'fakerecosd'+iRJ+'_tau_2_'+str(tauN)+sys+iRecoSel[sys] ).Fill( ireco['sd2'+str(tauN)], WEIGHT )
 
                 if self.onlyTrees and not sys.startswith(self.sysWeightList): self.fillBranches( 'selRecoJets'+sys, recoJet )
 
@@ -610,15 +691,16 @@ class nSubProd(Module):
 
                 for iGJ,igen in genJet.items():
 
-                    getattr( self, 'missgen'+iGJ+'_pt'+iGenSel ).Fill( igen['jet'].pt, event.genWeight )
-                    getattr( self, 'missgen'+iGJ+'_eta'+iGenSel ).Fill( igen['jet'].eta, event.genWeight )
-                    getattr( self, 'missgen'+iGJ+'_mass'+iGenSel ).Fill( igen['jet'].mass, event.genWeight )
-                    getattr( self, 'missgen'+iGJ+'_phi'+iGenSel ).Fill( igen['jet'].phi, event.genWeight )
-
-                    getattr( self, 'missgen'+iGJ+'_tau21'+iGenSel ).Fill( igen['tau21'], event.genWeight )
-                    getattr( self, 'missgen'+iGJ+'_tau32'+iGenSel ).Fill( igen['tau32'], event.genWeight )
-                    getattr( self, 'missgensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
-                    getattr( self, 'missgensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
+#                    getattr( self, 'missgen'+iGJ+'_pt'+iGenSel ).Fill( igen['jet'].pt, event.genWeight )
+#                    getattr( self, 'missgen'+iGJ+'_eta'+iGenSel ).Fill( igen['jet'].eta, event.genWeight )
+#                    getattr( self, 'missgen'+iGJ+'_mass'+iGenSel ).Fill( igen['jet'].mass, event.genWeight )
+#                    getattr( self, 'missgen'+iGJ+'_phi'+iGenSel ).Fill( igen['jet'].phi, event.genWeight )
+#
+#                    getattr( self, 'missgen'+iGJ+'_tau21'+iGenSel ).Fill( igen['tau21'], event.genWeight )
+#                    getattr( self, 'missgen'+iGJ+'_tau32'+iGenSel ).Fill( igen['tau32'], event.genWeight )
+#                    if self.runSDVariables:
+#                        getattr( self, 'missgensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
+#                        getattr( self, 'missgensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
 
                     getattr( self, 'gen'+iGJ+'_pt'+iGenSel ).Fill( igen['jet'].pt, event.genWeight )
                     getattr( self, 'gen'+iGJ+'_eta'+iGenSel ).Fill( igen['jet'].eta, event.genWeight )
@@ -627,23 +709,26 @@ class nSubProd(Module):
 
                     getattr( self, 'gen'+iGJ+'_tau21'+iGenSel ).Fill( igen['tau21'], event.genWeight )
                     getattr( self, 'gen'+iGJ+'_tau32'+iGenSel ).Fill( igen['tau32'], event.genWeight )
-                    getattr( self, 'gensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
-                    getattr( self, 'gensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
+                    if self.runSDVariables:
+                        getattr( self, 'gensd'+iGJ+'_tau21'+iGenSel ).Fill( igen['sdtau21'], event.genWeight )
+                        getattr( self, 'gensd'+iGJ+'_tau32'+iGenSel ).Fill( igen['sdtau32'], event.genWeight )
 
                     for tauN in range(1, self.maxTau+1):
-                        getattr( self, 'missgen'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
-                        getattr( self, 'missgen'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
-                        getattr( self, 'missgen'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
-                        getattr( self, 'missgensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
-                        getattr( self, 'missgensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
-                        getattr( self, 'missgensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
+#                        getattr( self, 'missgen'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
+#                        getattr( self, 'missgen'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
+#                        getattr( self, 'missgen'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
+#                        if self.runSDVariables:
+#                            getattr( self, 'missgensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
+#                            getattr( self, 'missgensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
+#                            getattr( self, 'missgensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
 
                         getattr( self, 'gen'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['0p5'+str(tauN)], event.genWeight )
                         getattr( self, 'gen'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['1'+str(tauN)], event.genWeight )
                         getattr( self, 'gen'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['2'+str(tauN)], event.genWeight )
-                        getattr( self, 'gensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
-                        getattr( self, 'gensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
-                        getattr( self, 'gensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
+                        if self.runSDVariables:
+                            getattr( self, 'gensd'+iGJ+'_tau_0p5_'+str(tauN)+iGenSel ).Fill( igen['sd0p5'+str(tauN)], event.genWeight )
+                            getattr( self, 'gensd'+iGJ+'_tau_1_'+str(tauN)+iGenSel ).Fill( igen['sd1'+str(tauN)], event.genWeight )
+                            getattr( self, 'gensd'+iGJ+'_tau_2_'+str(tauN)+iGenSel ).Fill( igen['sd2'+str(tauN)], event.genWeight )
 
             else:
                 self.ufo = self.ufo+1
@@ -974,42 +1059,43 @@ class nSubProd(Module):
 
 
         #### Computing Softdrop jets
-        sdAK8jets = self.sd.result( constituents ) #CandsPUPPIweightedVec )
+        if self.runSDVariables:
+            sdAK8jets = self.sd.result( constituents ) #CandsPUPPIweightedVec )
 
-        ### Storing good jet as list for later use
-        if len(sdAK8jets)>0:
+            ### Storing good jet as list for later use
+            if len(sdAK8jets)>0:
 
-            ak8jet['sdjet'] = sdAK8jets[0]
+                ak8jet['sdjet'] = sdAK8jets[0]
 
-            # Cluster only the particles near the appropriate jet to save time
-            sd_constituents =  ROOT.vector("TLorentzVector")()
+                # Cluster only the particles near the appropriate jet to save time
+                sd_constituents =  ROOT.vector("TLorentzVector")()
 
-            for x in ak8jet['sdjet'].constituents():
-                sd_constits = ROOT.TLorentzVector( x.px(), x.py(), x.pz(), x.E())
-                if abs(ak8jet['sdjet'].delta_R( x )) < 0.8:
-                    sd_constituents.push_back(sd_constits)
-            sd_nsub0p5 = self.nSub0p5.getTau( self.maxTau, sd_constituents )
-            sd_nsub1 = self.nSub1.getTau( self.maxTau, sd_constituents )
-            sd_nsub2 = self.nSub2.getTau( self.maxTau, sd_constituents )
-            sd_nsub1_OP_kT = self.nSub1_OP_kT.getTau( 3, sd_constituents )
+                for x in ak8jet['sdjet'].constituents():
+                    sd_constits = ROOT.TLorentzVector( x.px(), x.py(), x.pz(), x.E())
+                    if abs(ak8jet['sdjet'].delta_R( x )) < 0.8:
+                        sd_constituents.push_back(sd_constits)
+                sd_nsub0p5 = self.nSub0p5.getTau( self.maxTau, sd_constituents )
+                sd_nsub1 = self.nSub1.getTau( self.maxTau, sd_constituents )
+                sd_nsub2 = self.nSub2.getTau( self.maxTau, sd_constituents )
+                sd_nsub1_OP_kT = self.nSub1_OP_kT.getTau( 3, sd_constituents )
 
-            try: ak8jet['sdtau21'] = sd_nsub1_OP_kT[1]/sd_nsub1_OP_kT[0]
-            except ZeroDivisionError: ak8jet['sdtau21'] = -1
-            try: ak8jet['sdtau32'] = sd_nsub1_OP_kT[2]/sd_nsub1_OP_kT[1]
-            except ZeroDivisionError: ak8jet['sdtau32'] = -1
+                try: ak8jet['sdtau21'] = sd_nsub1_OP_kT[1]/sd_nsub1_OP_kT[0]
+                except ZeroDivisionError: ak8jet['sdtau21'] = -1
+                try: ak8jet['sdtau32'] = sd_nsub1_OP_kT[2]/sd_nsub1_OP_kT[1]
+                except ZeroDivisionError: ak8jet['sdtau32'] = -1
 
-            for tauN in range(self.maxTau):
-                ak8jet['sd0p5'+str(tauN+1)] = sd_nsub0p5[tauN]
-                ak8jet['sd1'+str(tauN+1)] = sd_nsub1[tauN]
-                ak8jet['sd2'+str(tauN+1)] = sd_nsub2[tauN]
-        else:
-            ak8jet['sdjet'] = ROOT.TLorentzVector( )
-            ak8jet['sdtau21'] = -1
-            ak8jet['sdtau32'] = -1
-            for tauN in range(self.maxTau):
-                ak8jet['sd0p5'+str(tauN+1)] = -1
-                ak8jet['sd1'+str(tauN+1)] = -1
-                ak8jet['sd2'+str(tauN+1)] = -1
+                for tauN in range(self.maxTau):
+                    ak8jet['sd0p5'+str(tauN+1)] = sd_nsub0p5[tauN]
+                    ak8jet['sd1'+str(tauN+1)] = sd_nsub1[tauN]
+                    ak8jet['sd2'+str(tauN+1)] = sd_nsub2[tauN]
+            else:
+                ak8jet['sdjet'] = ROOT.TLorentzVector( )
+                ak8jet['sdtau21'] = -1
+                ak8jet['sdtau32'] = -1
+                for tauN in range(self.maxTau):
+                    ak8jet['sd0p5'+str(tauN+1)] = -1
+                    ak8jet['sd1'+str(tauN+1)] = -1
+                    ak8jet['sd2'+str(tauN+1)] = -1
 
         return ak8jet
 
@@ -1024,15 +1110,17 @@ class nSubProd(Module):
         self.out.fillBranch(jetLabel+"_phi", [ iJ['jet'].phi for i,iJ in jetInfo.items()  ] )
         self.out.fillBranch(jetLabel+"_Tau21", [ iJ['tau21'] for i,iJ in jetInfo.items()  ] )
         self.out.fillBranch(jetLabel+"_Tau32", [ iJ['tau32'] for i,iJ in jetInfo.items()  ] )
-        self.out.fillBranch(jetLabel+"_SD_Tau21", [ iJ['sdtau21'] for i,iJ in jetInfo.items()  ] )
-        self.out.fillBranch(jetLabel+"_SD_Tau32", [ iJ['sdtau32'] for i,iJ in jetInfo.items()  ] )
+        if self.runSDVariables:
+            self.out.fillBranch(jetLabel+"_SD_Tau21", [ iJ['sdtau21'] for i,iJ in jetInfo.items()  ] )
+            self.out.fillBranch(jetLabel+"_SD_Tau32", [ iJ['sdtau32'] for i,iJ in jetInfo.items()  ] )
 
         for tauN in range(1, self.maxTau+1):
             self.out.fillBranch(jetLabel+"_tau_0p5_"+str(tauN),  [ iJ['0p5'+str(tauN)] for i,iJ in jetInfo.items() ] )
             self.out.fillBranch(jetLabel+"_tau_1_"+str(tauN),  [ iJ['1'+str(tauN)] for i,iJ in jetInfo.items() ] )
             self.out.fillBranch(jetLabel+"_tau_2_"+str(tauN),  [ iJ['2'+str(tauN)] for i,iJ in jetInfo.items() ] )
-            self.out.fillBranch(jetLabel+"SD_tau_0p5_"+str(tauN),  [ iJ['sd0p5'+str(tauN)] for i,iJ in jetInfo.items() ] )
-            self.out.fillBranch(jetLabel+"SD_tau_1_"+str(tauN),  [ iJ['sd1'+str(tauN)] for i,iJ in jetInfo.items() ] )
-            self.out.fillBranch(jetLabel+"SD_tau_2_"+str(tauN),  [ iJ['sd2'+str(tauN)] for i,iJ in jetInfo.items() ] )
+            if self.runSDVariables:
+                self.out.fillBranch(jetLabel+"SD_tau_0p5_"+str(tauN),  [ iJ['sd0p5'+str(tauN)] for i,iJ in jetInfo.items() ] )
+                self.out.fillBranch(jetLabel+"SD_tau_1_"+str(tauN),  [ iJ['sd1'+str(tauN)] for i,iJ in jetInfo.items() ] )
+                self.out.fillBranch(jetLabel+"SD_tau_2_"+str(tauN),  [ iJ['sd2'+str(tauN)] for i,iJ in jetInfo.items() ] )
 
 

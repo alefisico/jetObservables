@@ -19,7 +19,6 @@ if [ "`tty`" != "not a tty" ]; then
   echo "YOU SHOULD NOT RUN THIS IN INTERACTIVE, IT DELETES YOUR LOCAL FILES"
 else
 
-###ls -lR .
 echo "ENV..................................."
 env
 echo "VOMS"
@@ -37,13 +36,11 @@ mv src $CMSSW_BASE/src
 mv python $CMSSW_BASE/python
 
 echo Found Proxy in: $X509_USER_PROXY
-ls
-echo "python {pythonFile} --sample {datasets} --selection {selection}"
-python {pythonFile} --sample {datasets} --selection {selection} --year {year} --runEra {runEra} --onlyTrees
-#python {pythonFile} --sample {datasets} --selection {selection} --year {year} --runEra {runEra} --onlyUnc {onlyUnc}
-fi
-    '''
-    open('runPostProc'+options.datasets+'.sh', 'w').write(BASH_SCRIPT.format(**options.__dict__))
+'''
+    open('runPostProc'+options.datasets+'.sh', 'w').write(BASH_SCRIPT)
+    with open('runPostProc'+options.datasets+'.sh', 'a') as txtfile:
+        cmd = "python "+options.pythonFile+" --sample "+options.datasets+" --selection "+options.selection+" --year "+options.year+" --runEra "+options.runEra+(" --onlyUnc "+options.onlyUnc if options.onlyUnc else "" )+(" --onlyTrees" if options.onlyTrees else "" )+'\nls\nfi'
+        txtfile.write(cmd)
 
 
 def submitJobs( job, inputFiles, unitJobs ):
@@ -175,9 +172,15 @@ if __name__ == '__main__':
         default='',
         help="Run only specific uncertainty variations"
     )
+    parser.add_option(
+        '--onlyTrees',
+        action="store_true",
+        help="Do not save histograms, only trees"
+    )
 
 
     (options, args) = parser.parse_args()
+    print(options,args)
 
     processingSamples = {}
     for sam in dictSamples:

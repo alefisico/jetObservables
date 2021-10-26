@@ -59,10 +59,10 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
             uncertDictHistos[ivar] = { 'totalUnc' : dictHistos[ivar]['unfold'].Clone() }
             uncertDictHistos[ivar][ 'totalUnc' ].Reset()
             uncertDictHistos[ivar][ 'statUnc' ] =  uncertDictHistos[ivar][ 'totalUnc' ].Clone()
-            for ibin in range( 0, dictHistos[ivar][ 'cov' ].GetNbinsX()+1 ):
-                uncertDictHistos[ivar][ 'totalUnc' ].SetBinContent( ibin, 1 )
+            for ibin in range( 1, dictHistos[ivar][ 'unfold' ].GetNbinsX()+1 ):
+                uncertDictHistos[ivar][ 'totalUnc' ].SetBinContent( ibin, 1. )
                 uncertDictHistos[ivar][ 'totalUnc' ].SetBinError( ibin, ROOT.TMath.Sqrt( dictHistos[ivar][ 'cov' ].GetBinContent(ibin,ibin) ) )
-                uncertDictHistos[ivar][ 'statUnc' ].SetBinContent( ibin, 1 )
+                uncertDictHistos[ivar][ 'statUnc' ].SetBinContent( ibin, 1. )
                 uncertDictHistos[ivar][ 'statUnc' ].SetBinError( ibin, dictHistos[ivar][ 'totalstatunc' ].GetBinContent(ibin) )
 
             ##### removing tau21 and tau32 from total plots
@@ -335,14 +335,15 @@ def drawUnfold( ivar, mainHisto, mainHistoLabel, otherHistos, varInfo, uncertDic
         hRatioMLU.SetMarkerStyle(8)
         hRatioMLU.Draw('P same')
 
-    uncertDictHistos['statUnc'].SetFillColor(ROOT.kBlue)
-    uncertDictHistos['statUnc'].SetFillStyle(3004)
-    uncertDictHistos['statUnc'].SetLineColor(0)
-    uncertDictHistos['statUnc'].Draw('E2 same')
+    #for ibin in range( 1, dictHistos[ivar][ 'unfold' ].GetNbinsX()+1 ):
     uncertDictHistos['totalUnc'].SetFillColor(ROOT.kBlack)
     uncertDictHistos['totalUnc'].SetLineColor(0)
     uncertDictHistos['totalUnc'].SetFillStyle(3004)
     uncertDictHistos['totalUnc'].Draw('E2 same')
+    uncertDictHistos['statUnc'].SetFillColor(ROOT.kBlue)
+    uncertDictHistos['statUnc'].SetFillStyle(3004)
+    uncertDictHistos['statUnc'].SetLineColor(0)
+    uncertDictHistos['statUnc'].Draw('E2 same')
 
     ratioLegend=ROOT.TLegend(0.20,0.85,0.80,0.95)
     ratioLegend.SetNColumns(2)
@@ -403,9 +404,9 @@ def bottomLineTest( ivar, dataHisto, mainHistoLabel, recoHisto, genHisto, covMat
     canRatio = ROOT.TCanvas('canRatio'+ivar, 'canRatio'+ivar,  10, 10, 750, 500 )
 
     genRatio = ROOT.TGraphAsymmErrors()
-    genRatio.Divide( dataHisto, genHisto, 'pois' )
+    genRatio.Divide( genHisto, dataHisto, 'pois' )
     recoRatio = ROOT.TGraphAsymmErrors()
-    recoRatio.Divide( dataHisto, recoHisto, 'pois' )
+    recoRatio.Divide( recoHisto, dataHisto, 'pois' )
 
     legend=ROOT.TLegend(0.15,0.70,0.40,0.90)
     legend.SetFillStyle(0)
@@ -416,7 +417,7 @@ def bottomLineTest( ivar, dataHisto, mainHistoLabel, recoHisto, genHisto, covMat
     genRatio.SetLineWidth(2)
     genRatio.GetXaxis().SetTitle(varInfo['label'])
     genRatio.GetXaxis().SetLimits( varInfo['bins'][0], varInfo['bins'][-1] )
-    genRatio.GetYaxis().SetTitle('Data / Simulation')
+    genRatio.GetYaxis().SetTitle('Sim. / Data'+(' (MC)' if args.process.startswith('MC') else '' ))
     genRatio.GetYaxis().SetTitleOffset( 0.8 )
     genRatio.SetMarkerStyle(8)
     genRatio.Draw('AP0')
@@ -622,7 +623,7 @@ def combinePlots( name, dictHistos, numBins, mainHistoLabel, otherHisto, otherHi
         textBox.SetTextSize(0.04)
     else:
 
-        legend=ROOT.TLegend(0.10,0.80,0.60,0.90)
+        legend=ROOT.TLegend(0.60,0.80,0.90,0.90)
         legend.SetNColumns(3 if args.runMLU else 2)
         legend.SetFillStyle(0)
         legend.SetTextSize(0.06)
@@ -634,12 +635,15 @@ def combinePlots( name, dictHistos, numBins, mainHistoLabel, otherHisto, otherHi
         canvas[outputFileName].SetGridy()
 
         hRatio = ROOT.TGraphAsymmErrors()
-        hRatio.Divide( dictHistos['combUnfold'], dictHistos[ 'combData' ], 'pois' )
-        legend.AddEntry( hRatio, (args.process), 'lep' )
+        hRatio.Divide( dictHistos[ 'combData' ], dictHistos['combUnfold'], 'pois' )
+        if args.process.startswith('MCCrossClosure'): labelLegend = 'MCSelfClosure Ind.Sample'
+        elif args.process.startswith('MCClosure'): labelLegend = 'MCCrossClosure'
+        else: labelLegend = args.process
+        legend.AddEntry( hRatio, labelLegend, 'lep' )
         hRatio.SetMarkerStyle(8)
 
         hRatio.GetXaxis().SetNdivisions(100)
-        hRatio.GetYaxis().SetTitle( 'Data / Simulation' )
+        hRatio.GetYaxis().SetTitle( 'Sim. / Data'+(' (MC)' if args.process.startswith('MC') else '') )
         hRatio.GetYaxis().SetTitleSize( 0.06 )
         hRatio.GetYaxis().SetTitleOffset( 0.6 )
         hRatio.GetXaxis().SetLimits( 0., numBins[-1] )
@@ -659,6 +663,10 @@ def combinePlots( name, dictHistos, numBins, mainHistoLabel, otherHisto, otherHi
         CMS_lumi.relPosX = 0.07
         CMS_lumi.CMS_lumi( canvas[outputFileName], 4, 0)
         legend.Draw()
+
+        aBox = textBox.Clone()
+        aBox.SetTextSize(0.06)
+        aBox.DrawLatex( 5, 1.80, '#bf{#splitline{'+('Central Jet' if name.startswith('recoJet2') else 'Outer Jet')+"}{Dijet Selection}}"  )
 
         textBox.SetTextAlign(12)
         textBoxList = {}
@@ -680,7 +688,7 @@ def combineRatioPlots( name, ratioDicts, numBins, outputLabel, axisX='', outputD
     if args.log: outputFileName = outputFileName.replace('Plots','Plots_Log')
     print('Processing.......', outputFileName)
 
-    legend=ROOT.TLegend(0.10,0.75,0.40,0.90)
+    legend=ROOT.TLegend(0.75,0.75,0.95,0.90)
     legend.SetFillStyle(0)
     legend.SetTextSize(0.06)
 
@@ -736,7 +744,7 @@ def combineRatioPlots( name, ratioDicts, numBins, outputLabel, axisX='', outputD
     multiGraph.Add( dictHistos['combGenRatio'] )
 
     multiGraph.GetXaxis().SetNdivisions(100)
-    multiGraph.GetYaxis().SetTitle( 'Data / Simulation' )
+    multiGraph.GetYaxis().SetTitle( 'Sim. / Data'+(' (MC)' if args.process.startswith('MC') else '') )
     multiGraph.GetYaxis().SetTitleSize( 0.06 )
     multiGraph.GetYaxis().SetTitleOffset( 0.6 )
     multiGraph.GetXaxis().SetLimits( 0., xvalues[-1]+1 )
@@ -744,6 +752,9 @@ def combineRatioPlots( name, ratioDicts, numBins, outputLabel, axisX='', outputD
     multiGraph.SetMinimum( 0. )
     multiGraph.Draw('AP')
 
+    aBox = textBox.Clone()
+    aBox.SetTextSize(0.06)
+    aBox.DrawLatex( 5, 1.80, '#bf{#splitline{'+('Central Jet' if name.startswith('recoJet2') else 'Outer Jet')+"}{Dijet Selection}}"  )
 
     ### division lines
     lines = {}
