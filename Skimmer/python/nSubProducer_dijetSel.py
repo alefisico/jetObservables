@@ -32,7 +32,7 @@ class nSubProd(Module):
         ### Kinematics Cuts AK8Jets ###
         self.minLeadAK8JetPtDijet = 200.
         self.minAK8JetPt = 170  ### this is the basic minimum, not the final
-        self.maxJetAK8Eta = 2.4
+        self.maxJetAK8Eta = 1.7
         self.diffPt = [ 200, 350, 500, 750, 1000, 10000 ]
 
         ### Kinematics Cuts Jets ###
@@ -157,7 +157,8 @@ class nSubProd(Module):
 
         if not self.onlyTrees:
             ### Booking histograms
-            selList = ([ '_'+x+'_dijetSel' for x in self.triggerTable  ] + [ '_'+x+'_weight_dijetSel' for x in self.triggerTable  ]) if not self.isMC else [ '_dijetSel' ]
+            selList = [ '_'+x+'_dijetSel' for x in self.triggerTable  ] if not self.isMC else [ '_dijetSel' ]
+            #selList = ([ '_'+x+'_dijetSel' for x in self.triggerTable  ] + [ '_'+x+'_weight_dijetSel' for x in self.triggerTable  ]) if not self.isMC else [ '_dijetSel' ]
             if not self.onlyUnc:
                 self.addObject( ROOT.TH1F('cutflow_test',   ';Categories',   12, 0, 12) )
                 self.addObject( ROOT.TH1F('PUweight',   ';PUWeight',   20, 0, 2) )
@@ -232,7 +233,7 @@ class nSubProd(Module):
             if self.isMC:
                 extSelList = ['_'+str(x)+'_dijetSel' for x in self.diffPt if x<10000 ]
             else:
-                extSelList = [ '_'+str(y)+'_'+x+'_dijetSel' for x in self.triggerTable  for y in self.diffPt if y<10000 ] + [ '_'+str(y)+'_'+x+'_weight_dijetSel' for x in self.triggerTable for y in self.diffPt if y<10000 ]
+                extSelList = [ '_'+str(y)+'_'+x+'_dijetSel' for x in self.triggerTable  for y in self.diffPt if y<10000 ]  #+ [ '_'+str(y)+'_'+x+'_weight_dijetSel' for x in self.triggerTable for y in self.diffPt if y<10000 ]
             for isel in extSelList:
                 for iJ in self.nJet:
                     for itype in ( [ 'gen', 'reco' ] if self.isMC else [ 'reco' ] ):
@@ -380,16 +381,16 @@ class nSubProd(Module):
                         getattr( self, 'recoJet2_sortedPt_eta'+iRecoSel['_nom'] ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'eta' ), self.totalWeight )
                         getattr( self, 'recoJet2_sortedPt_phi'+iRecoSel['_nom'] ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'phi' ), self.totalWeight )
                         getattr( self, 'recoJet2_sortedPt_mass'+iRecoSel['_nom'] ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'msoftdrop_nom' ), self.totalWeight )
-                        if not self.isMC:
-                            tmpSel = iRecoSel['_nom'].replace('_dijet', '_weight_dijet')
-                            getattr( self, 'recoJet1_sortedPt_pt'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'pt_nom' ), self.triggerWeight )
-                            getattr( self, 'recoJet1_sortedPt_eta'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'eta' ), self.triggerWeight )
-                            getattr( self, 'recoJet1_sortedPt_phi'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'phi' ), self.triggerWeight )
-                            getattr( self, 'recoJet1_sortedPt_mass'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'msoftdrop_nom' ), self.triggerWeight )
-                            getattr( self, 'recoJet2_sortedPt_pt'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'pt_nom' ), self.triggerWeight )
-                            getattr( self, 'recoJet2_sortedPt_eta'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'eta' ), self.triggerWeight )
-                            getattr( self, 'recoJet2_sortedPt_phi'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'phi' ), self.triggerWeight )
-                            getattr( self, 'recoJet2_sortedPt_mass'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'msoftdrop_nom' ), self.triggerWeight )
+#                        if not self.isMC:
+#                            tmpSel = iRecoSel['_nom'].replace('_dijet', '_weight_dijet')
+#                            getattr( self, 'recoJet1_sortedPt_pt'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'pt_nom' ), self.triggerWeight )
+#                            getattr( self, 'recoJet1_sortedPt_eta'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'eta' ), self.triggerWeight )
+#                            getattr( self, 'recoJet1_sortedPt_phi'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'phi' ), self.triggerWeight )
+#                            getattr( self, 'recoJet1_sortedPt_mass'+tmpSel ).Fill( getattr(tmpRecoJets[sys][0]['jet'], 'msoftdrop_nom' ), self.triggerWeight )
+#                            getattr( self, 'recoJet2_sortedPt_pt'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'pt_nom' ), self.triggerWeight )
+#                            getattr( self, 'recoJet2_sortedPt_eta'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'eta' ), self.triggerWeight )
+#                            getattr( self, 'recoJet2_sortedPt_phi'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'phi' ), self.triggerWeight )
+#                            getattr( self, 'recoJet2_sortedPt_mass'+tmpSel ).Fill( getattr(tmpRecoJets[sys][1]['jet'], 'msoftdrop_nom' ), self.triggerWeight )
                 else:
 
                     if '_nom' in tmpRecoJets.keys():
@@ -400,7 +401,7 @@ class nSubProd(Module):
                         tmpRecoJets[sys][1] = self.createNsubBasis( selRecoJets[sys][1], event, 'PFCands' )
 
 
-                if abs(tmpRecoJets[sys][0]['jet'].eta) > abs(tmpRecoJets[sys][1]['jet'].eta):
+                if abs(tmpRecoJets[sys][0]['jet'].rapidity) > abs(tmpRecoJets[sys][1]['jet'].rapidity):
                     recoJet['Jet1'] = tmpRecoJets[sys][0]
                     recoJet['Jet2'] = tmpRecoJets[sys][1]
                 else:
@@ -446,7 +447,7 @@ class nSubProd(Module):
 
                         if ( getattr(ireco['jet'], 'pt'+( '_nom' if sys.startswith(self.sysWeightList) else sys ) ) > self.minLeadAK8JetPtDijet ):
 
-                            tmpSel = iRecoSel[sys].replace('_dijet', '_weight_dijet') if not self.isMC else iRecoSel[sys]
+                            tmpSel = iRecoSel[sys] #.replace('_dijet', '_weight_dijet') if not self.isMC else iRecoSel[sys]
                             tmpWeight = WEIGHT if not self.isMC else self.triggerWeight
                             if sys.startswith(self.sysWeightList):
                                 getattr( self, 'reco'+iRJ+'_pt'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'pt_nom' ), tmpWeight )
@@ -494,7 +495,7 @@ class nSubProd(Module):
                         tmpGenJet1 = self.createNsubBasis( selGenJets[0], event, 'GenCands' )
                         tmpGenJet2 = self.createNsubBasis( selGenJets[1], event, 'GenCands' )
 
-                        if abs(tmpGenJet1['jet'].eta) > abs(tmpGenJet2['jet'].eta):
+                        if abs(tmpGenJet1['jet'].rapidity) > abs(tmpGenJet2['jet'].rapidity):
                             genJet['Jet1'] = tmpGenJet1
                             genJet['Jet2'] = tmpGenJet2
                         else:
@@ -779,7 +780,8 @@ class nSubProd(Module):
         for sys in self.sysSource:
             if sys.startswith(self.sysWeightList): sys = '_nom'
             #### Basic AK8 jet selection
-            recoAK8jets[sys] = [ x for x in AK8jets if getattr( x, 'pt'+sys ) > self.minAK8JetPt and abs(x.eta) < self.maxJetAK8Eta and (x.jetId >= 2)]
+            for ijets in AK8jets: ijets.rapidity = self.etaToRapidity(ijets)
+            recoAK8jets[sys] = [ x for x in AK8jets if getattr( x, 'pt'+sys ) > self.minAK8JetPt and abs( x.rapidity ) < self.maxJetAK8Eta and (x.jetId >= 2)]
             recoAK8jets[sys].sort(key=lambda x:getattr( x, 'pt'+sys ),reverse=True)
             ##################################################
 
@@ -808,7 +810,7 @@ class nSubProd(Module):
                         if ( itrValues[self.year][0] < recoAK8jets['_nom'][0].pt_nom < itrValues[self.year][1] ) :
                             iSel['_nom'] = '_'+itrigger+'_dijetSel'
                             passSel['_nom'] = True
-                            self.triggerWeight = itrValues[self.year][triggerVersion]
+                            self.triggerWeight = 1 #itrValues[self.year][triggerVersion]
                             break
                         else:
                             passSel['_nom'] = False
@@ -836,7 +838,7 @@ class nSubProd(Module):
 
 
 
-                    else: passSel['_nom'] = False
+#                    else: passSel['_nom'] = False
             else:
                 self.triggerWeight = 0
                 passSel['_nom'] = False
@@ -936,7 +938,8 @@ class nSubProd(Module):
         ##################################################
 
         #### Basic AK8 jet selection
-        genAK8jets = [ x for x in genJetsAK8 if x.pt > self.minAK8JetPt and abs(x.eta) < self.maxJetAK8Eta ]
+        for ijets in genJetsAK8: ijets.rapidity = self.etaToRapidity(ijets)
+        genAK8jets = [ x for x in genJetsAK8 if x.pt > self.minAK8JetPt and abs(x.rapidity) < self.maxJetAK8Eta ]
         genAK8jets.sort(key=lambda x:x.pt,reverse=True)
         ##################################################
 
@@ -1123,4 +1126,8 @@ class nSubProd(Module):
                 self.out.fillBranch(jetLabel+"SD_tau_1_"+str(tauN),  [ iJ['sd1'+str(tauN)] for i,iJ in jetInfo.items() ] )
                 self.out.fillBranch(jetLabel+"SD_tau_2_"+str(tauN),  [ iJ['sd2'+str(tauN)] for i,iJ in jetInfo.items() ] )
 
-
+    #############################################################################
+    def etaToRapidity( self, ijet ):
+        nom = np.sqrt( np.power(ijet.mass,2) + np.power(ijet.pt * np.cosh(ijet.eta),2) ) + ijet.pt * np.sinh(ijet.eta)
+        den = np.sqrt( np.power(ijet.mass,2) + np.power(ijet.pt,2) )
+        return np.log(nom/den)

@@ -26,7 +26,7 @@ textBox=ROOT.TLatex()
 textBox.SetTextSize(0.10)
 textBox.SetTextAlign(12)
 
-colors = [ 2, 4, 9, 8, 28, 30, 42, 13 ]
+colors = [ 2, 4, 6, 8, 9, 28, 30, 42, 13, 46, 29, 32 ]
 ##################################################
 def makePlots( name, ext='png', outputDir='Plots/' ):
     """function to plot s and b histos"""
@@ -50,8 +50,8 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
                     'gen' : dictFiles[ivar].Get( signalLabel+'_accepgen'+ivar+'_'+args.selection ),
                     'reco' : dictFiles[ivar].Get( signalLabel+'_reco'+ivar+'_nom_'+args.selection ),
                     'resp' : dictFiles[ivar].Get( signalLabel+'_resp'+ivar+'_nom_'+args.selection ),
-                    'gen'+altSignalLabel : dictFiles[ivar].Get( altSignalLabel+'_genJetfrom_resp'+ivar+'_nom_'+args.selection ),
-                    'reco'+altSignalLabel : dictFiles[ivar].Get( altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom_'+args.selection ),
+                    'gen'+altSignalLabel : dictFiles[ivar].Get( altSignalLabel+'_accepgen'+ivar+'_nom_'+args.selection ),
+                    'reco'+altSignalLabel : dictFiles[ivar].Get( altSignalLabel+'_truereco'+ivar+'_nom_'+args.selection ),
                     'probaMatrix' : dictFiles[ivar].Get( 'TUnfoldDensity' ).GetProbabilityMatrix('probaMatrix'+ivar)
                     }
 
@@ -59,9 +59,11 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
             uncertDictHistos[ivar] = { 'totalUnc' : dictHistos[ivar]['unfold'].Clone() }
             uncertDictHistos[ivar][ 'totalUnc' ].Reset()
             uncertDictHistos[ivar][ 'statUnc' ] =  uncertDictHistos[ivar][ 'totalUnc' ].Clone()
-            for ibin in range( 1, dictHistos[ivar][ 'unfold' ].GetNbinsX()+1 ):
+            uncertDictHistos[ivar][ 'onlyUnc' ] =  uncertDictHistos[ivar][ 'totalUnc' ].Clone()
+            for ibin in range( 0, dictHistos[ivar][ 'unfold' ].GetNbinsX()+1 ):
                 uncertDictHistos[ivar][ 'totalUnc' ].SetBinContent( ibin, 1. )
                 uncertDictHistos[ivar][ 'totalUnc' ].SetBinError( ibin, ROOT.TMath.Sqrt( dictHistos[ivar][ 'cov' ].GetBinContent(ibin,ibin) ) )
+                uncertDictHistos[ivar][ 'onlyUnc' ].SetBinContent( ibin, ROOT.TMath.Sqrt( dictHistos[ivar][ 'cov' ].GetBinContent(ibin,ibin) ) )
                 uncertDictHistos[ivar][ 'statUnc' ].SetBinContent( ibin, 1. )
                 uncertDictHistos[ivar][ 'statUnc' ].SetBinError( ibin, dictHistos[ivar][ 'totalstatunc' ].GetBinContent(ibin) )
 
@@ -78,12 +80,14 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
                 mainHistoLabel = 'Unfolded (Closure)'
                 otherHisto = 'gen'
                 otherHistoLabel=sigPlotLabel
-                otherHistos[sigPlotLabel] = dictHistos[ivar]['gen']
-                dictHistos[ivar]['gen'+altSignalLabel].Rebin(2)
+                #otherHistos[sigPlotLabel] = dictHistos[ivar]['gen']
+                #dictHistos[ivar]['gen'+altSignalLabel].Rebin(2)
+                otherHistos['Accepted Gen'] = dictHistos[ivar]['gen']
+                dictHistos[ivar]['fold'].Rebin(2)
                 otherHistos[altSigPlotLabel] = dictHistos[ivar]['gen'+altSignalLabel]
             elif args.process.startswith(('MCSelfClosure', 'MCCrossClosure')):
                 outputLabel = args.process+'_'+sigPlotLabel
-                mainHistoLabel = 'Unfolded (Self-Closure)'
+                mainHistoLabel = 'Unfolded (Self-Closure)' if args.process.startswith('MCSelfClosure') else 'Unfolded (Cross-Closure)'
                 otherHisto = 'gen'
                 otherHistoLabel='Accepted Gen'
                 otherHistos['Accepted Gen'] = dictHistos[ivar]['gen']
@@ -102,7 +106,7 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
 
                 #### Making unc plot
                 dictUncHistos = {}
-                for sys in [ 'puWeight', 'fsrWeight', 'jer', 'isrWeight', 'jesTotal' ]:
+                for sys in [ 'puWeight', 'fsrWeight', 'jer', 'isrWeight', 'jesTotal', 'pdfWeight' ]:
                     for updown in ['Up', 'Down']:
                         dictUncHistos['_'+sys+updown] = dictFiles[ivar].Get( signalLabel+'_reco'+ivar+'_'+sys+updown+'_'+args.selection )
 
@@ -117,13 +121,13 @@ def makePlots( name, ext='png', outputDir='Plots/' ):
                                     )
 
                 uncerUnfoldHisto = {}
-                tmpListUnc = ['StatTotal', 'Data statTotal', 'Resp. Matrix statTotal', 'JESTOTALTotal', 'JERTotal', 'PUWEIGHTTotal', 'ISRWEIGHTTotal', 'FSRWEIGHTTotal', 'Physics ModelTotal']
-                for sys in tmpListUnc: uncerUnfoldHisto[sys] = dictFiles[ivar].Get( ivar+'_'+sys )
-                drawUncertainties(ivar, uncertDictHistos[ivar][ 'totalUnc' ],
+                tmpListUnc = ['StatTotal', 'Data statTotal', 'Resp. Matrix statTotal', 'JESTOTALTotal', 'JERTotal', 'PUWEIGHTTotal', 'ISRWEIGHTTotal', 'FSRWEIGHTTotal', 'PDFWEIGHTTotal', 'Physics ModelTotal']
+                for sys in tmpListUnc: uncerUnfoldHisto[sys] = dictFiles[ivar].Get( ivar+'_'+sys ).Clone()
+                drawUncertainties(ivar, uncertDictHistos[ivar][ 'onlyUnc' ].Clone(),
                                     uncerUnfoldHisto,
                                     nSubVariables[ivar]['label'],
                                     nSubVariables[ivar]['alignLeg'],
-                                    outputDir+'/'+ivar+'/data/'+ivar+'_'+args.selection+'_'+outputLabel+'_uncStudies_'+args.version+'.'+args.ext
+                                    outputName=outputDir+'/'+ivar+'/data/'+ivar+'_'+args.selection+'_'+outputLabel+'_uncStudies_'+args.version+'.'+args.ext
                                     )
 
             if args.runMLU:
@@ -219,7 +223,7 @@ def draw2D( ivar, histo, varInfo, outputLabel, outputDir, addCorrelation=False, 
         for ibin in range( 0, Nx ):
             if (abs(v[ibin]) < 1e-5 ): break
             Min = v[ibin]
-        conditionNumber = str(round( Min/Max, 2 )) if Min > 0 else 'NaN'
+        conditionNumber = str(round( Max/Min, 2 )) if Min > 0 else 'NaN'
         print('|-----> Condition Number: ', conditionNumber)
         textBoxCond = textBox.Clone()
         textBoxCond.DrawLatex( 0.05, varInfo['bins'][-1]-( .1*(varInfo['bins'][-1]-varInfo['bins'][0]) ), '#color[0]{Cond. Number = '+conditionNumber+'}' )
@@ -339,11 +343,11 @@ def drawUnfold( ivar, mainHisto, mainHistoLabel, otherHistos, varInfo, uncertDic
     uncertDictHistos['totalUnc'].SetFillColor(ROOT.kBlack)
     uncertDictHistos['totalUnc'].SetLineColor(0)
     uncertDictHistos['totalUnc'].SetFillStyle(3004)
-    uncertDictHistos['totalUnc'].Draw('E2 same')
+    #uncertDictHistos['totalUnc'].Draw('E2 same')
     uncertDictHistos['statUnc'].SetFillColor(ROOT.kBlue)
     uncertDictHistos['statUnc'].SetFillStyle(3004)
     uncertDictHistos['statUnc'].SetLineColor(0)
-    uncertDictHistos['statUnc'].Draw('E2 same')
+    #uncertDictHistos['statUnc'].Draw('E2 same')
 
     ratioLegend=ROOT.TLegend(0.20,0.85,0.80,0.95)
     ratioLegend.SetNColumns(2)
@@ -351,7 +355,7 @@ def drawUnfold( ivar, mainHisto, mainHistoLabel, otherHistos, varInfo, uncertDic
     ratioLegend.SetTextSize(0.1)
     ratioLegend.AddEntry( uncertDictHistos['totalUnc'], 'Data total unc.', 'f' )
     ratioLegend.AddEntry( uncertDictHistos['statUnc'], 'Data stat. unc.', 'f' )
-    ratioLegend.Draw()
+    #ratioLegend.Draw()
 
     can.SaveAs(outputName)
     if args.ext.startswith('pdf'):
@@ -440,7 +444,7 @@ def bottomLineTest( ivar, dataHisto, mainHistoLabel, recoHisto, genHisto, covMat
 
 
 ###########################################################################
-def drawUncertainties( ivar, unfoldHistoTotUnc, uncerUnfoldHisto, labelX, tlegendAlignment, outputName ):
+def drawUncertainties( ivar, unfoldHistoTotUnc, uncerUnfoldHisto, labelX, tlegendAlignment, outputName='Plots' ):
     """docstring for drawUncUncertainties"""
 
     ROOT.gStyle.SetPadRightMargin(0.05)
@@ -454,7 +458,6 @@ def drawUncertainties( ivar, unfoldHistoTotUnc, uncerUnfoldHisto, labelX, tlegen
     legend.SetTextSize(0.03)
     legend.AddEntry( unfoldHistoTotUnc, 'Total Unc', 'l' )
 
-    #unfoldHistoTotUnc.SetMinimum(0.00000000001)
     unfoldHistoTotUnc.SetLineWidth(2)
     uncScaleFactor = 1/unfoldHistoTotUnc.Integral()
     unfoldHistoTotUnc.Scale( uncScaleFactor )
@@ -477,21 +480,21 @@ def drawUncertainties( ivar, unfoldHistoTotUnc, uncerUnfoldHisto, labelX, tlegen
             uncerUnfoldHisto[k].Draw("hist same")
             dummy=dummy+1
 
-    ##### this is a test
-    tmp = OrderedDict()
-    for i in xrange( 0, unfoldHistoTotUnc.GetNbinsX() + 1):
-        tmp[i] = 0
-        for k in uncerUnfoldHisto:
-            if k.endswith('Total') and not k.endswith(('StatTotal')):
-                tmp[i] = tmp[i] + ( uncerUnfoldHisto[k].GetBinContent( i )**2 )
-                #print(i, k, tmp[i], uncerUnfoldHisto[k].GetBinContent( i ), ( uncerUnfoldHisto[k].GetBinContent( i )**2 ))
-    tmpHisto = unfoldHistoTotUnc.Clone()
-    tmpHisto.Reset()
-    for i,j in tmp.items():
-        tmpHisto.SetBinContent( i, ROOT.TMath.Sqrt( j ) )
-    tmpHisto.SetLineColor(ROOT.kBlack)
-    #tmpHisto.Scale( 1, 'width' )
-    tmpHisto.Draw("hist same")   ### this should be the same as TotalUnc
+#    ##### this is a test
+#    tmp = OrderedDict()
+#    for i in xrange( 0, unfoldHistoTotUnc.GetNbinsX() + 1):
+#        tmp[i] = 0
+#        for k in uncerUnfoldHisto:
+#            if k.endswith('Total') and not k.endswith(('StatTotal')):
+#                tmp[i] = tmp[i] + ( uncerUnfoldHisto[k].GetBinContent( i )**2 )
+#                #print(i, k, tmp[i], uncerUnfoldHisto[k].GetBinContent( i ), ( uncerUnfoldHisto[k].GetBinContent( i )**2 ))
+#    tmpHisto = unfoldHistoTotUnc.Clone()
+#    tmpHisto.Reset()
+#    for i,j in tmp.items():
+#        tmpHisto.SetBinContent( i, ROOT.TMath.Sqrt( j ) )
+#    tmpHisto.SetLineColor(ROOT.kYellow)
+#    #tmpHisto.Scale( 1, 'width' )
+#    #tmpHisto.Draw("hist same")   ### this should be the same as TotalUnc
 
     legend.Draw()
     CMS_lumi.extraText = "Simulation Preliminary"

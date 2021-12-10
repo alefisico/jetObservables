@@ -19,7 +19,7 @@ ROOT.gROOT.ForceStyle()
 tdrStyle.setTDRStyle()
 ROOT.gStyle.SetOptStat(0)
 
-colors = [ 2, 4, 6, 8, 9, 28, 30, 42, 13, 46 ]
+colors = [ 2, 4, 6, 8, 9, 28, 30, 42, 13, 46, 29, 32 ]
 canvas = {}
 
 ##########################################################

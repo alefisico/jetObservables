@@ -54,16 +54,19 @@ def runTUnfold( dataFile, sigFiles, bkgFiles, variables, sel, sysUncert ):
                     signalHistos[ signalLabel+'_resp'+ivar+sys+upDown+sel ] = dataFile[ivar+'_2017'].Get(signalLabel+'_resp'+ivar+sys+upDown+sel)
                     if not args.process.startswith('MCCrossClosure'): signalHistos[ signalLabel+'_resp'+ivar+sys+upDown+sel ].Add( dataFile[ivar+'_2018'].Get(signalLabel+'_resp'+ivar+sys+upDown+sel) )
 
-            altSignalHistos = {
-                altSignalLabel+'_resp'+ivar+'_nom'+sel : dataFile[ivar+'_2017'].Get(altSignalLabel+'_resp'+ivar+'_nom'+sel),
-                altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel : dataFile[ivar+'_2017'].Get(altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel),
-                altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel : dataFile[ivar+'_2017'].Get(altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel),
-                }
+            altSignalHistos = { }
+            #if args.process.startswith('data'):
+            altSignalHistos[ altSignalLabel+'_resp'+ivar+'_nom'+sel ] = dataFile[ivar+'_2017'].Get(altSignalLabel+'_resp'+ivar+'_nom'+sel)
+            altSignalHistos[ altSignalLabel+'_truereco'+ivar+'_nom'+sel ] = dataFile[ivar+'_2017'].Get(altSignalLabel+'_truereco'+ivar+'_nom'+sel)
+            altSignalHistos[ altSignalLabel+'_accepgen'+ivar+'_nom'+sel ] = dataFile[ivar+'_2017'].Get(altSignalLabel+'_accepgen'+ivar+'_nom'+sel)
+            #altSignalHistos[ altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel ] = dataFile[ivar+'_2017'].Get(altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel)
+            #altSignalHistos[ altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel ] = dataFile[ivar+'_2017'].Get(altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel)
 
-            if not args.process.startswith('MCCrossClosure'):
-                altSignalHistos[ altSignalLabel+'_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_resp'+ivar+'_nom'+sel) )
-                altSignalHistos[ altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel) )
-                altSignalHistos[ altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel) )
+            altSignalHistos[ altSignalLabel+'_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_resp'+ivar+'_nom'+sel) )
+            altSignalHistos[ altSignalLabel+'_truereco'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_truereco'+ivar+'_nom'+sel) )
+            altSignalHistos[ altSignalLabel+'_accepgen'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_accepgen'+ivar+'_nom'+sel) )
+            #altSignalHistos[ altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_recoJetfrom_resp'+ivar+'_nom'+sel) )
+            #altSignalHistos[ altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel ].Add( dataFile[ivar+'_2018'].Get(altSignalLabel+'_genJetfrom_resp'+ivar+'_nom'+sel) )
 
             allHistos = {
                     'dataMinusBkgs' : dataFile[ivar+'_2017'].Get( 'dataMinusBkgs' ),
@@ -88,17 +91,18 @@ def runTUnfold( dataFile, sigFiles, bkgFiles, variables, sel, sysUncert ):
             tmp2SigFiles = { k:v for (k,v) in sigFiles.items() if k.startswith(altSignalLabelBegin)  }
             altSignalHistos = loadHistograms( tmp2SigFiles, ivar, sel, sysUnc=[], respOnly=True, lumi=args.lumi, year=args.year, process=args.process, variables=variables)
             if args.process.startswith("MC"):
-                if args.process.startswith('MCSelfClosure'):
-                    dataHistos = { 'data_reco'+k.split(('_reco' if sel.startswith('_dijet') else 'Leptonic'))[1] : v for (k,v) in signalHistos.items() if '_reco' in k }
-                else:
-                    dataHistos = loadHistograms( tmp2SigFiles, ivar, sel, isMC=True, addGenInfo=False, lumi=args.lumi, year=args.year, process=args.process, variables=variables )
-                    dataHistos = { 'data_reco'+k.split('_reco')[1] : v for (k,v) in dataHistos.items() if '_reco' in k }
-                    print(dataHistos)
+                #if args.process.startswith('MCSelfClosure'):
+                dataHistos = { 'data_reco'+k.split(('_reco' if sel.startswith('_dijet') else 'Leptonic'))[1] : v for (k,v) in signalHistos.items() if '_reco' in k }
+#                else:
+#                    dataHistos = loadHistograms( tmp2SigFiles, ivar, sel, isMC=True, addGenInfo=False, lumi=args.lumi, year=args.year, process=args.process, variables=variables )
+#                    dataHistos = { 'data_reco'+k.split('_reco')[1] : v for (k,v) in dataHistos.items() if '_reco' in k }
+#                    print(dataHistos)
             else:
-                dataHistos = loadHistograms( dataFile, ivar, sel, isMC= False, lumi=args.lumi, year=args.year, process=args.process, variables=variables )
+                dataHistos = loadHistograms( dataFile, ivar, sel, isMC=False, lumi=args.lumi, year=args.year, process=args.process, variables=variables )
             bkgHistos = loadHistograms( bkgFiles, ivar, sel, sysUnc=[], lumi=args.lumi, year=args.year, process=args.process, variables=variables) if args.process.startswith('data') else {}
 
             ####### Fix fake and true reco
+            if args.process.startswith('MCClosure'): signalHistos[signalLabel+'_resp'+ivar+'_nom'+sel] = altSignalHistos[altSignalLabel+'_resp'+ivar+'_nom'+sel]
             signalHistos[signalLabel+'_truereco'+ivar+'_nom'+sel]= signalHistos[signalLabel+'_resp'+ivar+'_nom'+sel].ProjectionY()
             signalHistos[signalLabel+'_fakereco'+ivar+'_nom'+sel] = signalHistos[signalLabel+'_reco'+ivar+'_nom'+sel].Clone()
             signalHistos[signalLabel+'_fakereco'+ivar+'_nom'+sel].Add( signalHistos[signalLabel+'_truereco'+ivar+'_nom'+sel], -1 )
@@ -157,9 +161,9 @@ def runTUnfold( dataFile, sigFiles, bkgFiles, variables, sel, sysUncert ):
 
             ####### Cross check response matrix
             tmpGenHisto = signalHistos[signalLabel+'_resp'+ivar+'_nom'+sel].ProjectionX()
-            plotSimpleComparison( tmpGenHisto, 'projection', signalHistos[signalLabel+'_accepgen'+ivar+sel].Clone(), 'Regular AccepGen', ivar+'_from'+('Data' if args.process.startswith('data') else 'MC')+'_'+signalLabel+"_TestProjectionGen", rebinX=1, version=sel+'_'+args.version, outputDir=outputDir )
+            plotSimpleComparison( tmpGenHisto, 'projection', signalHistos[signalLabel+'_accepgen'+ivar+sel].Clone(), 'Regular AccepGen', ivar+'_from'+('Data' if args.process.startswith('data') else args.process)+'_'+signalLabel+"_TestProjectionGen", rebinX=1, version=sel+'_'+args.version, outputDir=outputDir )
             tmpRecoHisto = signalHistos[signalLabel+'_resp'+ivar+'_nom'+sel].ProjectionY()
-            plotSimpleComparison( tmpRecoHisto, 'projection', signalHistos[signalLabel+'_truereco'+ivar+'_nom'+sel].Clone(), 'Regular TrueReco', ivar+'_from'+('Data' if args.process.startswith('data') else 'MC')+'_'+signalLabel+"_TestProjectionReco", rebinX=1, version=sel+'_'+args.version, outputDir=outputDir )
+            plotSimpleComparison( tmpRecoHisto, 'projection', signalHistos[signalLabel+'_truereco'+ivar+'_nom'+sel].Clone(), 'Regular TrueReco', ivar+'_from'+('Data' if args.process.startswith('data') else  args.process)+'_'+signalLabel+"_TestProjectionReco", rebinX=1, version=sel+'_'+args.version, outputDir=outputDir )
             tmpRecoHisto.Scale( scaleFactor )
 
             ####### Removing bkgs from data
@@ -196,7 +200,7 @@ def runTUnfold( dataFile, sigFiles, bkgFiles, variables, sel, sysUncert ):
         CMS_lumi.lumi_13TeV = "13 TeV, "+ ( '2017+2018' if args.year.startswith('all') else args.year )
         CMS_lumi.relPosX = 0.12
         CMS_lumi.CMS_lumi(can2D, 4, 0)
-        can2D.SaveAs(outputDir+ivar+'_from'+('Data' if args.process.startswith('data') else 'MC')+'_'+signalLabel+sel+'_responseMatrix'+args.version+'.'+args.ext)
+        can2D.SaveAs(outputDir+ivar+'_from'+('Data' if args.process.startswith('data') else args.process)+'_'+signalLabel+sel+'_responseMatrix'+args.version+'.'+args.ext)
 
         if args.runMLU: runMaxLikelihoodUnfold( dataHistos, signalHistos, bkgHistos, ivar, sel, signalLabel, sysUncert, outputDir )
         else:
@@ -409,8 +413,8 @@ def loadHistograms( samples, var, sel, sysUnc=[], isMC=True, addGenInfo=True, re
     allHistos = {}
     for isam in samples:
         tmpList = [ 'reco'+var+syst+sel for syst in SYSUNC ]
-        #if isMC and addGenInfo: tmpList = tmpList + [ 'gen'+var+sel ] + [ 'resp'+var+syst+sel for syst in SYSUNC ]
-        if isMC and addGenInfo: tmpList = tmpList + [ 'gen'+var+sel, 'missgen'+var+sel, 'accepgen'+var+sel, 'truereco'+var+'_nom'+sel, 'fakereco'+var+'_nom'+sel ] + [ 'resp'+var+syst+sel for syst in SYSUNC ]
+        if isMC and addGenInfo: tmpList = tmpList + [ 'gen'+var+sel ] + [ 'resp'+var+syst+sel for syst in SYSUNC ]
+        #if isMC and addGenInfo: tmpList = tmpList + [ 'gen'+var+sel, 'missgen'+var+sel, 'accepgen'+var+sel, 'truereco'+var+'_nom'+sel, 'fakereco'+var+'_nom'+sel ] + [ 'resp'+var+syst+sel for syst in SYSUNC ]
         if respOnly: tmpList = [ 'resp'+var+syst+sel for syst in SYSUNC ] #+ [ 'missgen'+var+sel ]
         for ih in tmpList:
             print 'Processing '+isam+' '+ih
@@ -423,6 +427,9 @@ def loadHistograms( samples, var, sel, sysUnc=[], isMC=True, addGenInfo=True, re
                 if sel.startswith('_dijet') and process.startswith('data'):
                     tmpdataHistos = {}
                     for it in checkDict( 'JetHT', dictSamples )[year]['triggerList']:
+#                        for ipt in (['200', '350', '500', '750', '1000'] if not args.pt else [args.pt]):
+#                            tmpdataHistos[ it ] = samples[isam][0].Get( 'jetObservables/'+ih.replace( sel, '_'+it+'_weight'+sel ).replace('_nom', '_nom_'+ipt) )
+#                            tmpdataHistos[ it ].Scale( checkDict( 'JetHT', dictSamples )[year]['triggerList'][it] )
                         tmpdataHistos[ it ] = samples[isam][0].Get( 'jetObservables/'+ih.replace( sel, '_'+it+sel ) )
                         tmpdataHistos[ it ].Scale( checkDict( 'JetHT', dictSamples )[year]['triggerList'][it] )
                     allHistos[ isam+'_'+ih ] = tmpdataHistos[next(iter(tmpdataHistos))].Clone()
@@ -488,8 +495,8 @@ def loadHistograms( samples, var, sel, sysUnc=[], isMC=True, addGenInfo=True, re
 
                 #if isMC: allHistos[isam+'_'+ih].Scale( MCScale )
                 ##### For tests, projections directly from 2D
-                allHistos[isam+'_genJetfrom_'+ih] = allHistos[isam+'_'+ih].ProjectionY()
-                allHistos[isam+'_recoJetfrom_'+ih] = allHistos[isam+'_'+ih].ProjectionX()
+                allHistos[isam+'_'+ih.replace('resp', 'accepgen')] = allHistos[isam+'_'+ih].ProjectionY()
+                allHistos[isam+'_'+ih.replace('resp', 'truereco')] = allHistos[isam+'_'+ih].ProjectionX()
 
 
     tmpHistos = { k:v for (k,v) in allHistos.items() if 'Inf' in k }
@@ -797,6 +804,7 @@ if __name__ == '__main__':
     parser.add_argument("--inputFolder", action='store', dest="inputFolder", default="", help="input folder" )
     parser.add_argument("--outputFolder", action='store', dest="outputFolder", default="", help="Output folder" )
     parser.add_argument('-l', '--lumi', action='store', type=float, default=0., help='Luminosity, example: 1.' )
+    parser.add_argument('--pt', action='store', default='', help='For different pt unfolding' )
 
     try: args = parser.parse_args()
     except:
@@ -815,7 +823,7 @@ if __name__ == '__main__':
     else: variables = { k:v for (k,v) in variables.items() if k.startswith('Jet_') }
 
     #### syst
-    sysUncert = [] if (args.noUnc or args.process.startswith('MCSelfClosure')) else [ '_jesTotal', '_jer', '_puWeight', '_isrWeight', '_fsrWeight', '_model' ]
+    sysUncert = [] if (args.noUnc or args.process.startswith('MCSelfClosure')) else [ '_jesTotal', '_jer', '_puWeight', '_pdfWeight', '_isrWeight', '_fsrWeight', '_model' ]
 
     #### Define main and alt signals
     if args.selection.startswith('_dijet'):
@@ -855,8 +863,8 @@ if __name__ == '__main__':
             sys.exit(0)
 
         for ivar in variables.keys():
-            dataFile[ivar+'_2017'] = ROOT.TFile.Open( args.inputFolder+'/Plots/'+args.selection.split('_')[1]+'/Unfold/2017/'+ivar+'/'+('MCClosure' if 'Cross' in args.process else args.process )+'/outputHistograms_main_'+signalLabel+'_alt_'+altSignalLabel+'.root' )
-            dataFile[ivar+'_2018'] = ROOT.TFile.Open( args.inputFolder+'/Plots/'+args.selection.split('_')[1]+'/Unfold/2018/'+ivar+'/'+('MCClosure' if 'Cross' in args.process else args.process )+'/outputHistograms_main_'+signalLabel+'_alt_'+altSignalLabel+'.root' )
+            dataFile[ivar+'_2017'] = ROOT.TFile.Open( args.inputFolder+'/Plots/'+args.selection.split('_')[1]+'/Unfold/2017/'+ivar+'/'+('MCSelfClosure' if 'Cross' in args.process else args.process )+'/outputHistograms_main_'+signalLabel+'_alt_'+altSignalLabel+'.root' )
+            dataFile[ivar+'_2018'] = ROOT.TFile.Open( args.inputFolder+'/Plots/'+args.selection.split('_')[1]+'/Unfold/2018/'+ivar+'/'+('MCSelfClosure' if 'Cross' in args.process else args.process )+'/outputHistograms_main_'+signalLabel+'_alt_'+altSignalLabel+'.root' )
 
     #### Single year unfolding runs on skimmers
     else:
