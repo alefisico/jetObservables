@@ -109,7 +109,7 @@ systSources = ['_jesTotal', '_jer', '_puWeight'] if isMC else []   ######### NEE
 if args.selection.startswith('dijet'):
     #systSources = [ '_puWeight', '_isrWeight', '_fsrWeight', '_pdfWeight' ] if args.sample.startswith('QCD_HT') else []
     systSources = [] #['_jesTotal', '_jer', '_puWeight', '_isrWeight', '_fsrWeight', '_pdfWeight' ] if args.sample.startswith('QCD_HT') else []
-if args.onlyUnc: sysSources = [ args.onlyUnc ]
+if args.onlyUnc: systSources = [ args.onlyUnc ]
 
 
 ### Lepton scale factors
@@ -137,9 +137,11 @@ LeptonSF = {
 
 
 #### Modules to run
+jesUncert = 'Merged' if any('_jes' in iunc for iunc in systSources) else 'Total'
+print(jesUncert, systSources)
 if not args.selection.startswith('dijet'):
-    jetmetCorrector = createJMECorrector(isMC=isMC, applySmearing=False, dataYear='UL'+args.year, jesUncert="All", runPeriod=args.runEra )
-fatJetCorrector = createJMECorrector(isMC=isMC, applySmearing=False, dataYear='UL'+args.year, jesUncert="All", jetType = "AK8PFPuppi", runPeriod=args.runEra)
+    jetmetCorrector = createJMECorrector(isMC=isMC, applySmearing=False, dataYear='UL'+args.year, jesUncert=jesUncert, runPeriod=args.runEra, applyHEMfix=(True if args.year.startswith('2018') else False) )
+fatJetCorrector = createJMECorrector(isMC=isMC, applySmearing=False, dataYear='UL'+args.year, jesUncert=jesUncert, jetType = "AK8PFPuppi", runPeriod=args.runEra, applyHEMfix=(True if args.year.startswith('2018') else False))
 
 modulesToRun = []
 modulesToRun.append( fatJetCorrector() )
