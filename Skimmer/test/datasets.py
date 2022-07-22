@@ -6,6 +6,60 @@ dictSamples = {
 
     'JetHT' : {
         'selection' : 'dijet',
+        '2016_HIPM' :  {
+            'miniAOD' : {
+                'B': '/JetHT/Run2016B-ver2_HIPM_UL2016_MiniAODv2-v2/MINIAOD',
+                'C': '/JetHT/Run2016C-HIPM_UL2016_MiniAODv2-v2/MINIAOD',
+                'D': '/JetHT/Run2016D-HIPM_UL2016_MiniAODv2-v2/MINIAOD',
+                'E': '/JetHT/Run2016E-HIPM_UL2016_MiniAODv2-v2/MINIAOD',
+                'F': '/JetHT/Run2016F-HIPM_UL2016_MiniAODv2-v2/MINIAOD',
+                },
+            'nanoAOD' : {
+                'B': '',
+                'C': '',
+                'D': '',
+                'E': '',
+                'F': '',
+                },
+            'skimmerHisto' : 'jetObservables_histograms_JetHT2016ALL_HIPM.root',
+            'lumi' : 16707.068,
+            'triggerList' : {
+                'AK8PFJet80' : 27661.64,
+                'AK8PFJet140' : 2689.77,
+                'AK8PFJet200' : 278.62,
+                'AK8PFJet260' : 56.78,
+                'AK8PFJet320' : 19.59,
+                'AK8PFJet400' : 6.41,
+                'AK8PFJet450' : 1.,
+                'AK8PFJet500' : 1.,
+                }
+            },
+        '2016' :  {
+            'miniAOD' : {
+                'F': '/JetHT/Run2016F-UL2016_MiniAODv2-v2/MINIAOD',
+                'G': '/JetHT/Run2016G-UL2016_MiniAODv2-v2/MINIAOD',
+                'H': '/JetHT/Run2016H-UL2016_MiniAODv2-v2/MINIAOD',
+                },
+            'nanoAOD' : {
+                'B': '',
+                'C': '',
+                'D': '',
+                'E': '',
+                'F': '',
+                },
+            'skimmerHisto' : 'jetObservables_histograms_JetHT2016ALL.root',
+            'lumi' : 16795.659,
+            'triggerList' : {
+                'AK8PFJet80' : 41995.50,
+                'AK8PFJet140' : 4319.21,
+                'AK8PFJet200' : 652.64,
+                'AK8PFJet260' : 75.17,
+                'AK8PFJet320' : 25.00,
+                'AK8PFJet400' : 8.47,
+                'AK8PFJet450' : 1.,
+                'AK8PFJet500' : 1.,
+                }
+            },
         '2017' :  {
             'miniAOD' : {
                 'B' : '/JetHT/Run2017B-UL2017_MiniAODv2-v1/MINIAOD',

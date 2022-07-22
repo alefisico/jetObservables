@@ -62,7 +62,7 @@ class nSubProd(Module):
         self.eventCategory = -1
         self.dummy = 0
 
-        self.runTables = {
+        self.runTables = {   #### this is not used
                 '2017' : {
                     'low' : [ 297046, 299368, 302030, 303824, 305040  ],
                     'high' : [ 299329, 302029, 303434, 304797, 306462  ]
@@ -73,35 +73,51 @@ class nSubProd(Module):
                     }
                 }
         self.triggerTable = OrderedDict()
-        self.triggerTable[ 'AK8PFJet80' ] = {
+        self.triggerTable[ 'AK8PFJet80' ] = {    #### from the list below, only the first two numbers (trigger turn on) are used. The others were a test.
+                    '2016_HIPM' : [ 200,   242 ],
+                    '2016' : [ 200,   245 ],
                     '2017' : [ 200,   257, 50510.97, 6727.43, 6854.43, 23381.99, 38371.17 ],
                     '2018' : [ 200,   267, 17046.53, 34000.07, 33988.86, 33998.78 ],
                     }
         self.triggerTable[ 'AK8PFJet140' ] = {
+                    '2016_HIPM' : [ 242,   308 ],
+                    '2016' : [ 245,   310 ],
                     '2017' : [ 257,   323, 672.78, 1644.76, 1255.72, 2027.79, 2315.59 ],
                     '2018' : [ 267,   332, 1601.95, 1207.43, 1220.84, 1184.09 ],
                     }
         self.triggerTable[ 'AK8PFJet200' ] = {
+                    '2016_HIPM' : [ 308,   373 ],
+                    '2016' : [ 310,   375 ],
                     '2017' : [ 323,   389, 54.41, 382.72, 263.79, 380.97, 410.70 ],
                     '2018' : [ 332,   398, 368.33, 281.73, 284.86, 276.30 ],
                     }
         self.triggerTable[ 'AK8PFJet260' ] = {
+                    '2016_HIPM' : [ 373,   439 ],
+                    '2016' : [ 375,   440 ],
                     '2017' : [ 389,   455, 54.41, 382.72, 263.79, 380.97, 410.70 ],
                     '2018' : [ 398,   464, 132.00, 128.00, 122.91, 127.42 ],
                     }
         self.triggerTable[ 'AK8PFJet320' ] = {
+                    '2016_HIPM' : [ 439,   526 ],
+                    '2016' : [ 440,   525 ],
                     '2017' : [ 455,   543, 54.41, 382.72, 263.79, 380.97, 410.70 ],
                     '2018' : [ 464,   551, 49.29, 48.00, 47.28, 47.92 ],
                     }
         self.triggerTable[ 'AK8PFJet400' ] = {
+                    '2016_HIPM' : [ 526,   580 ],
+                    '2016' : [ 525,   580 ],
                     '2017' : [ 543,   598, 54.41, 382.72, 263.79, 380.97, 410.70 ],
                     '2018' : [ 551,   606, 16.39, 16.00, 15.92, 15.99 ],
                     }
         self.triggerTable[ 'AK8PFJet450' ] = {
+                    '2016_HIPM' : [ 580,   635 ],
+                    '2016' : [ 580,   635 ],
                     '2017' : [ 598,   653, 54.41, 382.72, 263.79, 380.97, 410.70  ],
                     '2018' : [ 606,   661, 8.43, 8.00, 7.98, 8.00 ],
                     }
         self.triggerTable[ 'AK8PFJet500' ] = {
+                    '2016_HIPM' : [ 635,   10000000. ],
+                    '2016' : [ 635,   1000000. ],
                     '2017' : [ 653.,  1000000., 1.00, 1.00, 1.00, 1.00, 1.00 ],
                     '2018' : [ 661,   1000000., 1, 1, 1, 1 ],
                     }
@@ -400,7 +416,6 @@ class nSubProd(Module):
                         tmpRecoJets[sys][0] = self.createNsubBasis( selRecoJets[sys][0], event, 'PFCands' )
                         tmpRecoJets[sys][1] = self.createNsubBasis( selRecoJets[sys][1], event, 'PFCands' )
 
-
                 if abs(tmpRecoJets[sys][0]['jet'].rapidity) > abs(tmpRecoJets[sys][1]['jet'].rapidity):
                     recoJet['Jet1'] = tmpRecoJets[sys][0]
                     recoJet['Jet2'] = tmpRecoJets[sys][1]
@@ -448,7 +463,7 @@ class nSubProd(Module):
                         if ( getattr(ireco['jet'], 'pt'+( '_nom' if sys.startswith(self.sysWeightList) else sys ) ) > self.minLeadAK8JetPtDijet ):
 
                             tmpSel = iRecoSel[sys] #.replace('_dijet', '_weight_dijet') if not self.isMC else iRecoSel[sys]
-                            tmpWeight = WEIGHT if not self.isMC else self.triggerWeight
+                            tmpWeight = WEIGHT if not self.isMC else self.totalWeight  #self.triggerWeight  ### something weird
                             if sys.startswith(self.sysWeightList):
                                 getattr( self, 'reco'+iRJ+'_pt'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'pt_nom' ), tmpWeight )
                                 getattr( self, 'reco'+iRJ+'_mass'+sys+tmpSel ).Fill( getattr(ireco['jet'], 'msoftdrop_nom' ), tmpWeight )
